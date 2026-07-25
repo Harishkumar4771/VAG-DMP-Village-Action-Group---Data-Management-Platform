@@ -66,3 +66,12 @@ lib/
 │   ├── issues/                 # Issue tracking, categories, and proof uploads
 │   ├── villages/               # 850+ Village directories and profiles
 │   └── meetings/               # Gram Sabha & committee meeting schedules
+## Project Documentation
+
+For a detailed look at the planning, requirements, and structure of this project, please refer to the following documents:
+
+* [Architecture Overview](docs/ARCHITECTURE.md)
+* [Design Guidelines](docs/DESIGN.md)
+* [Project Phases](docs/PHASES.md)
+* [Product Requirements Document (PRD)](docs/PRD.md)
+* [Project Rules](docs/RULES.md)
