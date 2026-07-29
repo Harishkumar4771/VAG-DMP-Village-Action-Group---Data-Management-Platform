@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  LEADER
+  ADMIN
+}
+
+enum SubmissionStatus {
+  DRAFT
+  PENDING_SYNC
+  SUBMITTED
+  VERIFIED
+  REVISION_REQUESTED
+}
+
+enum IssueCategory {
+  ROAD
+  EDUCATION
+  WATER
+  SOCIETY
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum MediaType {
+  BEFORE
+  AFTER
+  MEETING
+  DOCUMENT
+}
+
+model User {
+  id          String   @id
+  name        String
+  phone       String   @unique
+  role        UserRole @default(LEADER)
+  villageId   String?
+  village     Village? @relation(fields: [villageId], references: [id])
+  submissions Issue[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Village {
+  id             String    @id
+  name           String
+  district       String
+  state          String    @default("Maharashtra")
+  memberCount    int       @default(0)
+  lastActivity   String?
+  status         String    @default("Active")
+  users          User[]
+  issues         Issue[]
+  meetings       Meeting[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Issue {
+  id                 String               @id
+  title              String
+  category           IssueCategory
+  status             SubmissionStatus     @default(SUBMITTED)
+  problemDescription String
+  actionTaken        String
+  expenditureDetails String?
+  villageId          String
+  village            Village              @relation(fields: [villageId], references: [id])
+  reportedDate       DateTime
+  resolvedDate       DateTime?
+  timeline           IssueTimelineEntry[]
+  media              Media[]
+  resolutionNotes    String?
+  submittedById      String
+  submittedBy        User                 @relation(fields: [submittedById], references: [id])
+  adminReviewNote    String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+}
+
+model IssueTimelineEntry {
+  id        String           @id @default(uuid())
+  issueId   String
+  issue     Issue            @relation(fields: [issueId], references: [id])
+  status    SubmissionStatus
+  date      DateTime
+  note      String
+  completed Boolean          @default(false)
+}
+
+model Meeting {
+  id             String        @id
+  villageId      String
+  village        Village       @relation(fields: [villageId], references: [id])
+  date           DateTime
+  attendeesCount Int
+  status         MeetingStatus @default(SCHEDULED)
+  notes          String?
+  media          Media[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Media {
+  id        String    @id @default(uuid())
+  url       String
+  type      MediaType
+  issueId   String?
+  issue     Issue?    @relation(fields: [issueId], references: [id])
+  meetingId String?
+  meeting   Meeting?  @relation(fields: [meetingId], references: [id])
+  createdAt DateTime  @default(now())
+}
