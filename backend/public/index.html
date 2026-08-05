@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VAG-DMP | Village Action Group Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="brand-logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        </div>
+        <div class="brand-text">
+          <h1>VAG-DMP</h1>
+          <span>Village Action Management</span>
+        </div>
+      </div>
+
+      <nav class="nav-links">
+        <button class="nav-link active" data-view="dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          Dashboard
+        </button>
+        <button class="nav-link" data-view="issues">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Issues & Proofs
+        </button>
+        <button class="nav-link" data-view="villages">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          Villages (850+)
+        </button>
+        <button class="nav-link" data-view="meetings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Gram Sabha Meetings
+        </button>
+        <button class="nav-link" data-view="verification" id="admin-nav-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          Verification Center
+        </button>
+      </nav>
+
+      <div class="nav-actions">
+        <!-- Sync Engine Pill -->
+        <button id="sync-toggle-btn" class="sync-pill online" title="Click to simulate offline / online sync mode">
+          <span class="pulse-dot"></span>
+          <span id="sync-status-text">Online Sync Active</span>
+        </button>
+
+        <!-- Role Toggle Switcher -->
+        <div class="role-selector">
+          <label for="role-switch">Role:</label>
+          <select id="role-switch" class="role-dropdown">
+            <option value="LEADER">Leader (Sunita K.)</option>
+            <option value="ADMIN">Admin (Priya D.)</option>
+          </select>
+        </div>
+
+        <button id="btn-create-issue" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Report Issue
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Body -->
+    <main class="content-body">
+      <!-- DASHBOARD VIEW -->
+      <section id="view-dashboard" class="view-section active">
+        <div class="hero-header">
+          <div class="hero-title">
+            <h2>Ground Action Dashboard</h2>
+            <p>Real-time synchronization across Gram Panchayats and Village Action Leaders</p>
+          </div>
+          <div class="hero-badge">
+            <span class="badge badge-accent">Offline-First Engine Connected</span>
+          </div>
+        </div>
+
+        <!-- Metric Stat Cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon icon-green">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-villages">5</span>
+              <span class="stat-label">Active Villages</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon icon-orange">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-active-issues">3</span>
+              <span class="stat-label">Reported Issues</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon icon-blue">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-verified-issues">1</span>
+              <span class="stat-label">Verified & Resolved</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon icon-purple">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-meetings">2</span>
+              <span class="stat-label">Gram Sabha Meetings</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Domain Categories & Quick Actions -->
+        <div class="dashboard-columns">
+          <div class="column-main">
+            <div class="card-box">
+              <div class="card-header">
+                <h3>Problem Domain Categories</h3>
+                <span class="subtext">Click category to view records</span>
+              </div>
+              <div class="category-grid">
+                <div class="category-card cat-water" data-category="WATER">
+                  <div class="cat-icon">💧</div>
+                  <h4>Drinking Water</h4>
+                  <p>Pipelines, handpumps & storage tanks</p>
+                  <span class="cat-count" id="count-water">1 Issue</span>
+                </div>
+                <div class="category-card cat-road" data-category="ROAD">
+                  <div class="cat-icon">🛣️</div>
+                  <h4>Road & Infra</h4>
+                  <p>Solar lighting, tar roads & paving</p>
+                  <span class="cat-count" id="count-road">1 Issue</span>
+                </div>
+                <div class="category-card cat-education" data-category="EDUCATION">
+                  <div class="cat-icon">🎓</div>
+                  <h4>Education</h4>
+                  <p>School repairs & sanitation facilities</p>
+                  <span class="cat-count" id="count-education">1 Issue</span>
+                </div>
+                <div class="category-card cat-society" data-category="SOCIETY">
+                  <div class="cat-icon">👥</div>
+                  <h4>Society & Welfare</h4>
+                  <p>Drainage, samaj mandir & cleanliness</p>
+                  <span class="cat-count" id="count-society">1 Issue</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Ground Submissions Table -->
+            <div class="card-box margin-top">
+              <div class="card-header flex-between">
+                <h3>Recent Submissions & Proof Uploads</h3>
+                <button class="btn btn-sm btn-outline" data-view="issues">View All</button>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Title & Domain</th>
+                      <th>Village</th>
+                      <th>Status</th>
+                      <th>Proof Attachments</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recent-issues-list">
+                    <!-- Dynamic rendering -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="column-side">
+            <!-- Sync Queue Manager Card -->
+            <div class="card-box">
+              <div class="card-header">
+                <h3>Offline Sync Engine</h3>
+              </div>
+              <div class="sync-widget-body">
+                <div class="sync-status-display">
+                  <div class="status-indicator-dot online" id="sync-dot"></div>
+                  <div>
+                    <strong id="sync-widget-title">Engine Connected</strong>
+                    <p id="sync-widget-desc">Pending changes will automatically sync when online.</p>
+                  </div>
+                </div>
+                <div class="pending-count-box">
+                  <span class="pending-label">Pending Queue Items:</span>
+                  <span class="pending-badge" id="pending-queue-badge">0</span>
+                </div>
+                <button id="btn-manual-sync" class="btn btn-secondary btn-full">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                  Trigger Cloud Sync Now
+                </button>
+              </div>
+            </div>
+
+            <!-- Upcoming Meetings -->
+            <div class="card-box margin-top">
+              <div class="card-header flex-between">
+                <h3>Upcoming Gram Sabha</h3>
+                <button class="btn btn-sm btn-text" id="btn-new-meeting">+ Schedule</button>
+              </div>
+              <div id="dashboard-meetings-list" class="meetings-mini-list">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ISSUES & PROOFS VIEW -->
+      <section id="view-issues" class="view-section">
+        <div class="section-header">
+          <div>
+            <h2>Issue Tracking & Physical Proof Submissions</h2>
+            <p>Log ground issues, track progress, and attach photo/receipt evidence.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-create-issue-alt">+ Log New Issue</button>
+        </div>
+
+        <div class="filter-bar">
+          <div class="search-input-wrapper">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="issues-search" placeholder="Search issues, villages, or keywords...">
+          </div>
+          <div class="filter-chips" id="issue-category-filters">
+            <button class="chip active" data-cat="ALL">All Categories</button>
+            <button class="chip" data-cat="WATER">💧 Water</button>
+            <button class="chip" data-cat="ROAD">🛣️ Road</button>
+            <button class="chip" data-cat="EDUCATION">🎓 Education</button>
+            <button class="chip" data-cat="SOCIETY">👥 Society</button>
+          </div>
+          <div class="filter-dropdown">
+            <select id="issue-status-filter">
+              <option value="ALL">All Statuses</option>
+              <option value="SUBMITTED">Submitted</option>
+              <option value="PENDING_SYNC">Pending Sync</option>
+              <option value="VERIFIED">Verified</option>
+              <option value="REVISION_REQUESTED">Revision Requested</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="issues-cards-grid" id="issues-grid">
+          <!-- Dynamic rendering -->
+        </div>
+      </section>
+
+      <!-- VILLAGES DIRECTORY VIEW -->
+      <section id="view-villages" class="view-section">
+        <div class="section-header">
+          <div>
+            <h2>850+ Village Action Directory</h2>
+            <p>Profiles, member counts, and activity logs across Gram Panchayats</p>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <div class="search-input-wrapper">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="village-search" placeholder="Search village by name or district...">
+          </div>
+          <div class="filter-chips" id="village-status-filters">
+            <button class="chip active" data-vfilter="ALL">All Status</button>
+            <button class="chip" data-vfilter="Active">Active</button>
+            <button class="chip" data-vfilter="Needs Attention">Needs Attention</button>
+          </div>
+        </div>
+
+        <div class="villages-grid" id="villages-grid">
+          <!-- Dynamic rendering -->
+        </div>
+      </section>
+
+      <!-- MEETINGS VIEW -->
+      <section id="view-meetings" class="view-section">
+        <div class="section-header">
+          <div>
+            <h2>Gram Sabha & Committee Meetings</h2>
+            <p>Schedule meetings, record turnout, and log resolutions.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-create-meeting-main">+ Schedule Meeting</button>
+        </div>
+
+        <div class="meetings-grid" id="meetings-grid">
+          <!-- Dynamic rendering -->
+        </div>
+      </section>
+
+      <!-- VERIFICATION CENTER (ADMIN VIEW) -->
+      <section id="view-verification" class="view-section">
+        <div class="section-header">
+          <div>
+            <h2>Admin Verification Center</h2>
+            <p>Review submitted leader proofs, verify work completion, or issue revision requests.</p>
+          </div>
+        </div>
+
+        <div class="verification-list" id="verification-list">
+          <!-- Dynamic rendering -->
+        </div>
+      </section>
+    </main>
+
+    <!-- MODAL: Create Issue -->
+    <div id="modal-create-issue" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Log New Ground Issue</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <form id="form-create-issue">
+          <div class="form-group">
+            <label for="issue-title">Issue Title *</label>
+            <input type="text" id="issue-title" placeholder="e.g. Water Pipeline Leak in Ward 3" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="issue-category">Problem Domain *</label>
+              <select id="issue-category" required>
+                <option value="WATER">💧 Drinking Water</option>
+                <option value="ROAD">🛣️ Road & Infrastructure</option>
+                <option value="EDUCATION">🎓 Education & Schools</option>
+                <option value="SOCIETY">👥 Society & Welfare</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="issue-village">Village *</label>
+              <select id="issue-village" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="issue-desc">Problem Description *</label>
+            <textarea id="issue-desc" rows="3" placeholder="Describe ground problem detail..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="issue-action">Action Taken / Resolution Effort *</label>
+            <textarea id="issue-action" rows="2" placeholder="Actions taken with GP / committee..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="issue-expenditure">Expenditure Details (Optional)</label>
+            <input type="text" id="issue-expenditure" placeholder="e.g. ₹4,500 spent on PVC pipes & labor">
+          </div>
+
+          <div class="form-group">
+            <label for="issue-before-photo">Before Repair Photo URL (Optional)</label>
+            <input type="url" id="issue-before-photo" placeholder="https://images.unsplash.com/photo-...">
+          </div>
+
+          <div class="form-group">
+            <label for="issue-after-photo">After Repair Photo URL (Optional)</label>
+            <input type="url" id="issue-after-photo" placeholder="https://images.unsplash.com/photo-...">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+            <button type="submit" class="btn btn-primary">Submit Issue Record</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: Schedule Meeting -->
+    <div id="modal-create-meeting" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Schedule Gram Sabha Meeting</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <form id="form-create-meeting">
+          <div class="form-group">
+            <label for="meeting-village">Village *</label>
+            <select id="meeting-village" required></select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="meeting-date">Meeting Date & Time *</label>
+              <input type="datetime-local" id="meeting-date" required>
+            </div>
+            <div class="form-group">
+              <label for="meeting-attendees">Expected / Actual Attendees *</label>
+              <input type="number" id="meeting-attendees" min="1" value="25" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="meeting-notes">Agenda / Meeting Notes</label>
+            <textarea id="meeting-notes" rows="3" placeholder="Key discussions and resolutions passed..."></textarea>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+            <button type="submit" class="btn btn-primary">Schedule Meeting</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: Admin Verification Review -->
+    <div id="modal-admin-review" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Verify Submission Proof</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <form id="form-admin-review">
+          <input type="hidden" id="review-issue-id">
+          <div id="review-issue-details" class="review-details-box">
+            <!-- Populated dynamically -->
+          </div>
+
+          <div class="form-group margin-top">
+            <label for="admin-note">Admin Verification Note / Feedback</label>
+            <textarea id="admin-note" rows="3" placeholder="Enter notes or explanation for revision..."></textarea>
+          </div>
+
+          <div class="modal-footer flex-between">
+            <button type="button" id="btn-request-revision" class="btn btn-warning">Request Revision</button>
+            <button type="button" id="btn-verify-approve" class="btn btn-success">Verify & Approve Issue</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

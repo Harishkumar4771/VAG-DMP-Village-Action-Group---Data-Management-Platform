@@ -20,7 +20,7 @@ export const getAllMeetings = async (req: Request, res: Response, next: NextFunc
     const villageId = req.query.villageId as string | undefined;
     const status = req.query.status as string | undefined;
     const search = req.query.search as string | undefined;
-    const meetings = await meetingService.getAllMeetings(villageId, status, search);
+    const meetings = await meetingService.getAllMeetings({ villageId, status });
     res.status(200).json(meetings);
   } catch (error) {
     next(error);
