@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as authService from '../services/auth.service';
+import { AuthRequest } from '../types';
 import { z } from 'zod';
 
 const requestOtpSchema = z.object({
@@ -12,10 +13,10 @@ const verifyOtpSchema = z.object({
 });
 
 const registerSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string(),
+  id: z.string().optional(),
+  name: z.string().min(1),
   phone: z.string().min(10),
-  role: z.enum(['LEADER', 'ADMIN']),
+  role: z.enum(['LEADER', 'ADMIN']).optional(),
   villageId: z.string().optional(),
 });
 
@@ -44,6 +45,18 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     const data = registerSchema.parse(req.body);
     const user = await authService.register(data);
     res.status(201).json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const me = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    const user = await authService.getUserProfile(req.user.userId);
+    res.status(200).json(user);
   } catch (error) {
     next(error);
   }

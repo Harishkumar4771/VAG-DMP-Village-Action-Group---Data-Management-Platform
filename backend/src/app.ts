@@ -15,6 +15,23 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Root welcome & API status
+app.get('/', (req, res) => {
+  res.status(200).json({
+    name: 'VAG-DMP Backend API',
+    status: 'running',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/v1/auth',
+      villages: '/v1/villages',
+      issues: '/v1/issues',
+      meetings: '/v1/meetings',
+      sync: '/v1/sync',
+    },
+  });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });

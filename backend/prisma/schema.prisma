@@ -7,7 +7,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum UserRole {
@@ -60,7 +59,7 @@ model Village {
   name           String
   district       String
   state          String    @default("Maharashtra")
-  memberCount    int       @default(0)
+  memberCount    Int       @default(0)
   lastActivity   String?
   status         String    @default("Active")
   users          User[]
