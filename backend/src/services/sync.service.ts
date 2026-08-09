@@ -13,16 +13,17 @@ export const syncPush = async (payload: SyncPushPayload, userId?: string) => {
   if (payload.villages && payload.villages.length > 0) {
     for (const v of payload.villages) {
       try {
-        const existing = await prisma.village.findUnique({ where: { id: v.id } });
+        const id = v.id as string;
+        const existing = await prisma.village.findUnique({ where: { id } });
         if (existing) {
-          await villageService.updateVillage(v.id, v);
+          await villageService.updateVillage(id, v);
         } else {
           await villageService.createVillage(v);
         }
       } catch (error) {
         // Fallback to service handling
         try {
-          await villageService.updateVillage(v.id, v);
+          await villageService.updateVillage(v.id as string, v);
         } catch (e) {
           await villageService.createVillage(v);
         }
@@ -35,15 +36,16 @@ export const syncPush = async (payload: SyncPushPayload, userId?: string) => {
   if (payload.issues && payload.issues.length > 0) {
     for (const iss of payload.issues) {
       try {
-        const existing = await prisma.issue.findUnique({ where: { id: iss.id } });
+        const id = iss.id as string;
+        const existing = await prisma.issue.findUnique({ where: { id } });
         if (existing) {
-          await issueService.updateIssue(iss.id, iss);
+          await issueService.updateIssue(id, iss, userId);
         } else {
           await issueService.createIssue(iss, userId);
         }
       } catch (error) {
         try {
-          await issueService.updateIssue(iss.id, iss);
+          await issueService.updateIssue(iss.id as string, iss, userId);
         } catch (e) {
           await issueService.createIssue(iss, userId);
         }
@@ -56,15 +58,16 @@ export const syncPush = async (payload: SyncPushPayload, userId?: string) => {
   if (payload.meetings && payload.meetings.length > 0) {
     for (const mtg of payload.meetings) {
       try {
-        const existing = await prisma.meeting.findUnique({ where: { id: mtg.id } });
+        const id = mtg.id as string;
+        const existing = await prisma.meeting.findUnique({ where: { id } });
         if (existing) {
-          await meetingService.updateMeeting(mtg.id, mtg);
+          await meetingService.updateMeeting(id, mtg);
         } else {
           await meetingService.createMeeting(mtg);
         }
       } catch (error) {
         try {
-          await meetingService.updateMeeting(mtg.id, mtg);
+          await meetingService.updateMeeting(mtg.id as string, mtg);
         } catch (e) {
           await meetingService.createMeeting(mtg);
         }
@@ -90,15 +93,15 @@ export const syncPull = async (sinceTimestamp?: string): Promise<SyncPullRespons
   try {
     const [issues, meetings, villages] = await Promise.all([
       prisma.issue.findMany({
-        where: { updatedAt: { gt: since } },
-        include: { village: true, media: true, timeline: true },
+        where: { updated_at: { gt: since } },
+        include: { village: true, attachments: true, history: true },
       }),
       prisma.meeting.findMany({
-        where: { updatedAt: { gt: since } },
-        include: { village: true, media: true },
+        where: { scheduled_date: { gt: since } }, // Using scheduled_date as proxy for sync
+        include: { village: true, attendees: true },
       }),
       prisma.village.findMany({
-        where: { updatedAt: { gt: since } },
+        where: { created_at: { gt: since } }, // Villages rarely change, fallback to created_at
       }),
     ]);
 

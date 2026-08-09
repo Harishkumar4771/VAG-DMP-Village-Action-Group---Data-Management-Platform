@@ -9,118 +9,171 @@ datasource db {
   provider = "postgresql"
 }
 
-enum UserRole {
-  LEADER
-  ADMIN
+enum user_role {
+  leader
+  admin
+  super_admin
 }
 
-enum SubmissionStatus {
-  DRAFT
-  PENDING_SYNC
-  SUBMITTED
-  VERIFIED
-  REVISION_REQUESTED
+enum issue_category {
+  road
+  education
+  society
+  water
 }
 
-enum IssueCategory {
-  ROAD
-  EDUCATION
-  WATER
-  SOCIETY
+enum issue_status {
+  reported
+  in_progress
+  escalated
+  resolved
 }
 
-enum MeetingStatus {
-  SCHEDULED
-  COMPLETED
-  CANCELLED
+enum attachment_type {
+  before_photo
+  after_photo
+  gp_letter
+  receipt
+  other
 }
 
-enum MediaType {
-  BEFORE
-  AFTER
-  MEETING
-  DOCUMENT
+enum meeting_type {
+  gram_sabha
+  committee
 }
 
-model User {
-  id          String   @id
-  name        String
-  phone       String   @unique
-  role        UserRole @default(LEADER)
-  villageId   String?
-  village     Village? @relation(fields: [villageId], references: [id])
-  submissions Issue[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+enum meeting_status {
+  upcoming
+  completed
+  cancelled
+}
+
+model Profile {
+  id         String     @id @db.Uuid
+  full_name  String
+  phone      String?    @unique
+  role       user_role  @default(leader)
+  village_id String?    @db.Uuid
+  language   String?    @default("mr")
+  avatar_url String?
+  is_active  Boolean?   @default(true)
+  created_at DateTime?  @default(now()) @db.Timestamptz(6)
+
+  village    Village?   @relation(fields: [village_id], references: [id])
+  issues     Issue[]    @relation("IssueLeader")
+  verified_issues Issue[] @relation("IssueVerifier")
+  uploaded_attachments IssueAttachment[]
+  status_changes IssueStatusHistory[]
+  created_meetings Meeting[]
+
+  @@map("profiles")
 }
 
 model Village {
-  id             String    @id
-  name           String
-  district       String
-  state          String    @default("Maharashtra")
-  memberCount    Int       @default(0)
-  lastActivity   String?
-  status         String    @default("Active")
-  users          User[]
-  issues         Issue[]
-  meetings       Meeting[]
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String
+  taluka              String?
+  district            String?
+  state               String?   @default("Maharashtra")
+  gram_panchayat_name String?
+  chairman_name       String?
+  chairman_phone      String?
+  created_at          DateTime? @default(now()) @db.Timestamptz(6)
+
+  profiles Profile[]
+  issues   Issue[]
+  meetings Meeting[]
+
+  @@map("villages")
 }
 
 model Issue {
-  id                 String               @id
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  local_uuid         String?        @unique @db.Uuid
+  leader_id          String         @db.Uuid
+  village_id         String         @db.Uuid
+  category           issue_category
   title              String
-  category           IssueCategory
-  status             SubmissionStatus     @default(SUBMITTED)
-  problemDescription String
-  actionTaken        String
-  expenditureDetails String?
-  villageId          String
-  village            Village              @relation(fields: [villageId], references: [id])
-  reportedDate       DateTime
-  resolvedDate       DateTime?
-  timeline           IssueTimelineEntry[]
-  media              Media[]
-  resolutionNotes    String?
-  submittedById      String
-  submittedBy        User                 @relation(fields: [submittedById], references: [id])
-  adminReviewNote    String?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  description        String?
+  action_taken       String?
+  status             issue_status   @default(reported)
+  priority           Int?           @default(2) @db.SmallInt
+  verified_by        String?        @db.Uuid
+  verified_at        DateTime?      @db.Timestamptz(6)
+  verification_notes String?
+  created_at         DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?      @default(now()) @db.Timestamptz(6)
+  resolved_at        DateTime?      @db.Timestamptz(6)
+  synced_at          DateTime?      @db.Timestamptz(6)
+  is_deleted         Boolean?       @default(false)
+
+  leader             Profile        @relation("IssueLeader", fields: [leader_id], references: [id])
+  village            Village        @relation(fields: [village_id], references: [id])
+  verifier           Profile?       @relation("IssueVerifier", fields: [verified_by], references: [id])
+  attachments        IssueAttachment[]
+  history            IssueStatusHistory[]
+
+  @@map("issues")
 }
 
-model IssueTimelineEntry {
-  id        String           @id @default(uuid())
-  issueId   String
-  issue     Issue            @relation(fields: [issueId], references: [id])
-  status    SubmissionStatus
-  date      DateTime
-  note      String
-  completed Boolean          @default(false)
+model IssueAttachment {
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  issue_id     String          @db.Uuid
+  type         attachment_type
+  storage_path String
+  uploaded_by  String?         @db.Uuid
+  created_at   DateTime?       @default(now()) @db.Timestamptz(6)
+
+  issue        Issue           @relation(fields: [issue_id], references: [id], onDelete: Cascade)
+  uploader     Profile?        @relation(fields: [uploaded_by], references: [id])
+
+  @@map("issue_attachments")
+}
+
+model IssueStatusHistory {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  issue_id   String       @db.Uuid
+  old_status issue_status?
+  new_status issue_status
+  changed_by String?      @db.Uuid
+  remarks    String?
+  changed_at DateTime?    @default(now()) @db.Timestamptz(6)
+
+  issue      Issue        @relation(fields: [issue_id], references: [id], onDelete: Cascade)
+  changer    Profile?     @relation(fields: [changed_by], references: [id])
+
+  @@map("issue_status_history")
 }
 
 model Meeting {
-  id             String        @id
-  villageId      String
-  village        Village       @relation(fields: [villageId], references: [id])
-  date           DateTime
-  attendeesCount Int
-  status         MeetingStatus @default(SCHEDULED)
-  notes          String?
-  media          Media[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  local_uuid     String?        @unique @db.Uuid
+  village_id     String         @db.Uuid
+  type           meeting_type
+  title          String?
+  scheduled_date DateTime       @db.Timestamptz(6)
+  status         meeting_status? @default(upcoming)
+  agenda         String?
+  minutes_notes  String?
+  created_by     String?        @db.Uuid
+  created_at     DateTime?      @default(now()) @db.Timestamptz(6)
+  synced_at      DateTime?      @db.Timestamptz(6)
+
+  village        Village        @relation(fields: [village_id], references: [id])
+  creator        Profile?       @relation(fields: [created_by], references: [id])
+  attendees      MeetingAttendee[]
+
+  @@map("meetings")
 }
 
-model Media {
-  id        String    @id @default(uuid())
-  url       String
-  type      MediaType
-  issueId   String?
-  issue     Issue?    @relation(fields: [issueId], references: [id])
-  meetingId String?
-  meeting   Meeting?  @relation(fields: [meetingId], references: [id])
-  createdAt DateTime  @default(now())
+model MeetingAttendee {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  meeting_id String   @db.Uuid
+  name       String
+  role       String?
+  present    Boolean? @default(true)
+
+  meeting    Meeting  @relation(fields: [meeting_id], references: [id], onDelete: Cascade)
+
+  @@map("meeting_attendees")
 }

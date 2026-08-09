@@ -1,17 +1,19 @@
 import { Request } from 'express';
+import {
+  user_role,
+  issue_category,
+  issue_status,
+  meeting_status,
+  attachment_type,
+  meeting_type
+} from '@prisma/client';
 
-export type UserRole = 'LEADER' | 'ADMIN';
-// Legacy statuses (Flutter app backward compat)
-export type SubmissionStatus = 'DRAFT' | 'PENDING_SYNC' | 'SUBMITTED' | 'VERIFIED' | 'REVISION_REQUESTED'
-  // New workflow statuses
-  | 'REPORTED' | 'ACTION_INITIATED' | 'IN_PROGRESS' | 'WAITING' | 'COMPLETED';
-export type IssueCategory = 'ROAD' | 'EDUCATION' | 'WATER' | 'SOCIETY';
-export type MeetingStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
-export type MediaType = 'BEFORE' | 'AFTER' | 'MEETING' | 'DOCUMENT' | 'INITIAL' | 'PROGRESS';
-
-// Progress update types
-export type ProgressUpdateType = '15_DAY' | '1_MONTH';
-export type ProgressUpdateStatus = 'NOT_STARTED' | 'WORK_IN_PROGRESS' | 'WAITING_APPROVAL' | 'WAITING_RESOURCES' | 'COMPLETED';
+export type UserRole = user_role;
+export type IssueStatus = issue_status;
+export type IssueCategory = issue_category;
+export type MeetingStatus = meeting_status;
+export type MeetingType = meeting_type;
+export type AttachmentType = attachment_type;
 
 export interface AuthenticatedUser {
   userId: string;
@@ -25,80 +27,85 @@ export interface AuthRequest extends Request {
 export interface CreateVillageDto {
   id?: string;
   name: string;
-  district: string;
+  taluka?: string;
+  district?: string;
   state?: string;
-  memberCount?: number;
-  lastActivity?: string;
-  status?: string;
+  gram_panchayat_name?: string;
+  chairman_name?: string;
+  chairman_phone?: string;
 }
 
 export interface UpdateVillageDto {
   name?: string;
+  taluka?: string;
   district?: string;
   state?: string;
-  memberCount?: number;
-  lastActivity?: string;
-  status?: string;
+  gram_panchayat_name?: string;
+  chairman_name?: string;
+  chairman_phone?: string;
 }
 
 export interface CreateIssueDto {
   id?: string;
+  local_uuid?: string;
   title: string;
   category: IssueCategory;
-  status?: SubmissionStatus;
-  problemDescription: string;
-  actionTaken: string;
-  expenditureDetails?: string;
-  villageId: string;
-  reportedDate?: string | Date;
-  resolvedDate?: string | Date;
-  submittedById?: string;
-  beforePhotoUrls?: string[];
-  afterPhotoUrls?: string[];
-  documentUrls?: string[];
+  status?: IssueStatus;
+  description?: string;
+  action_taken?: string;
+  priority?: number;
+  village_id: string;
+  leader_id?: string; // typically inferred from auth, but maybe passed in sync
+  created_at?: string | Date;
+  resolved_at?: string | Date;
+  synced_at?: string | Date;
+  attachments?: { type: AttachmentType, storage_path: string }[];
 }
 
 export interface UpdateIssueDto {
   title?: string;
   category?: IssueCategory;
-  status?: SubmissionStatus;
-  problemDescription?: string;
-  actionTaken?: string;
-  expenditureDetails?: string;
-  resolutionNotes?: string;
-  adminReviewNote?: string;
-  resolvedDate?: string | Date;
+  status?: IssueStatus;
+  description?: string;
+  action_taken?: string;
+  priority?: number;
+  verification_notes?: string;
+  resolved_at?: string | Date;
 }
 
 export interface UpdateIssueStatusDto {
-  status: SubmissionStatus;
-  adminReviewNote?: string;
-  note?: string;
+  status: IssueStatus;
+  verification_notes?: string;
+  remarks?: string;
 }
 
 export interface CreateMeetingDto {
   id?: string;
-  villageId: string;
-  date: string | Date;
-  attendeesCount: number;
+  local_uuid?: string;
+  village_id: string;
+  type: MeetingType;
+  title?: string;
+  scheduled_date: string | Date;
   status?: MeetingStatus;
-  notes?: string;
-  photoUrls?: string[];
+  agenda?: string;
+  minutes_notes?: string;
+  attendees?: { name: string, role?: string, present?: boolean }[];
 }
 
 export interface UpdateMeetingDto {
-  villageId?: string;
-  date?: string | Date;
-  attendeesCount?: number;
+  village_id?: string;
+  type?: MeetingType;
+  title?: string;
+  scheduled_date?: string | Date;
   status?: MeetingStatus;
-  notes?: string;
-  photoUrls?: string[];
+  agenda?: string;
+  minutes_notes?: string;
 }
 
 export interface SyncPushPayload {
-  issues?: Array<CreateIssueDto & { id: string }>;
-  meetings?: Array<CreateMeetingDto & { id: string }>;
-  villages?: Array<CreateVillageDto & { id: string }>;
+  issues?: CreateIssueDto[];
+  meetings?: CreateMeetingDto[];
+  villages?: CreateVillageDto[];
 }
 
 export interface SyncPullResponse {
@@ -108,24 +115,11 @@ export interface SyncPullResponse {
   villages: any[];
 }
 
-// Progress Update DTOs
+// Progress Update DTOs - kept for compatibility if needed, but adapt them to the new schema
 export interface CreateProgressUpdateDto {
-  type: ProgressUpdateType;
-  status: ProgressUpdateStatus;
+  status: IssueStatus;
   description: string;
-  photoDataUrl?: string;
-  expenditure?: string;
+  photoDataUrl?: string; // handled as attachment
+  expenditure?: string; // no longer explicitly in schema, maybe goes in remarks/description
   notes?: string;
-}
-
-export interface ProgressUpdate {
-  id: string;
-  issueId: string;
-  type: ProgressUpdateType;
-  status: ProgressUpdateStatus;
-  description: string;
-  photoUrl?: string;
-  expenditure?: string;
-  notes?: string;
-  date: string;
 }

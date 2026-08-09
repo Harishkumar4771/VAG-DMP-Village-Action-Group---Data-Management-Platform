@@ -1333,3 +1333,28 @@ body {
   font-size: 0.9rem;
   margin-top: 0.25rem;
 }
+
+/* Login Overlay Styles */
+.login-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--primary-light);
+  z-index: 1000;
+}
+
+.login-box {
+  background: var(--surface);
+  padding: 2.5rem;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid var(--surface-border);
+}
+
+.login-box .form-group {
+  margin-bottom: 1.2rem;
+}

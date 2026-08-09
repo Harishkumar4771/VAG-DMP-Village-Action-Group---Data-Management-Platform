@@ -18,7 +18,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
   const navLinks = document.querySelectorAll('.nav-link');
   const viewSections = document.querySelectorAll('.view-section');
-  const roleSelect = document.getElementById('role-switch');
+  // Auth Elements
+  const loginOverlay = document.getElementById('login-overlay');
+  const mainAppContent = document.getElementById('main-app-content');
+  const loginStep1 = document.getElementById('login-step-1');
+  const loginStep2 = document.getElementById('login-step-2');
+  const btnRequestOtp = document.getElementById('btn-request-otp');
+  const btnVerifyOtp = document.getElementById('btn-verify-otp');
+  const btnBackPhone = document.getElementById('btn-back-phone');
+  const loginPhone = document.getElementById('login-phone');
+  const loginOtp = document.getElementById('login-otp');
+  const btnLogout = document.getElementById('btn-logout');
+  let authPhone = '';
   const syncToggleBtn = document.getElementById('sync-toggle-btn');
   const syncStatusText = document.getElementById('sync-status-text');
   const syncDot = document.getElementById('sync-dot');
@@ -81,12 +92,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- API CALLS ---
   async function apiFetch(url, options = {}) {
+    const token = localStorage.getItem('token');
     const headers = {
       'Content-Type': 'application/json',
-      'x-user-role': state.currentRole,
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     };
-    return fetch(url, { ...options, headers });
+    const res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+      handleLogout();
+    }
+    return res;
   }
 
   async function fetchVillages() {
@@ -170,12 +186,86 @@ document.addEventListener('DOMContentLoaded', () => {
     if (activeSection) activeSection.classList.add('active');
   }
 
-  // --- ROLE SWITCHING ---
-  roleSelect.addEventListener('change', (e) => {
-    state.currentRole = e.target.value;
-    showToast(`Role switched to ${state.currentRole === 'ADMIN' ? 'Admin Verifier' : 'Village Leader'}`);
-    renderVerificationList();
-  });
+  // --- AUTH LOGIC ---
+  async function checkAuth() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      showLogin();
+      return;
+    }
+    try {
+      const res = await apiFetch('/v1/auth/me');
+      if (res.ok) {
+        const user = await res.json();
+        state.currentRole = user.role;
+        const adminNav = document.getElementById('admin-nav-link');
+        if (adminNav) {
+          adminNav.style.display = state.currentRole === 'ADMIN' ? 'flex' : 'none';
+        }
+        showApp();
+      } else {
+        handleLogout();
+      }
+    } catch (e) {
+      showLogin();
+    }
+  }
+
+  function showLogin() {
+    loginOverlay.style.display = 'flex';
+    mainAppContent.style.display = 'none';
+    loginStep1.style.display = 'block';
+    loginStep2.style.display = 'none';
+  }
+
+  function showApp() {
+    loginOverlay.style.display = 'none';
+    mainAppContent.style.display = 'block';
+    initData();
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('token');
+    state.villages = [];
+    state.issues = [];
+    state.meetings = [];
+    showLogin();
+  }
+
+  if (btnLogout) btnLogout.addEventListener('click', handleLogout);
+
+
+  if (btnVerifyOtp) {
+    btnVerifyOtp.addEventListener('click', async () => {
+      const phone = loginPhone.value.trim();
+      if (phone.length < 10) return showToast('Enter valid 10-digit phone');
+      const otp = loginOtp.value.trim();
+      if (otp.length !== 6) return showToast('Enter 6-digit OTP');
+      
+      btnVerifyOtp.textContent = 'Verifying...';
+      try {
+        const res = await fetch('/v1/auth/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, otp })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('token', data.token);
+          showToast('Login successful!');
+          checkAuth();
+        } else {
+          const err = await res.json();
+          showToast(err.message || 'Invalid OTP');
+        }
+      } catch (e) {
+        showToast('Network error');
+      } finally {
+        btnVerifyOtp.textContent = 'Verify & Login';
+      }
+    });
+  }
+
 
   // --- SYNC ENGINE TOGGLE ---
   syncToggleBtn.addEventListener('click', () => {
@@ -250,9 +340,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- RENDERING FUNCTIONS ---
   function updateDashboardStats() {
-    const reported = state.issues.filter(i => i.status === 'REPORTED').length;
-    const inProgress = state.issues.filter(i => i.status === 'IN_PROGRESS' || i.status === 'ACTION_INITIATED').length;
-    const completed = state.issues.filter(i => i.status === 'COMPLETED').length;
+    const reported = state.issues.filter(i => i.status === 'reported').length;
+    const inProgress = state.issues.filter(i => i.status === 'in_progress' || i.status === 'in_progress').length;
+    const completed = state.issues.filter(i => i.status === 'resolved').length;
 
     document.getElementById('stat-reported').textContent = reported;
     document.getElementById('stat-in-progress').textContent = inProgress;
@@ -261,10 +351,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('stat-meetings').textContent = state.meetings.length;
 
     // Category counts
-    const countWater = state.issues.filter((i) => i.category === 'WATER').length;
-    const countRoad = state.issues.filter((i) => i.category === 'ROAD').length;
-    const countEdu = state.issues.filter((i) => i.category === 'EDUCATION').length;
-    const countSoc = state.issues.filter((i) => i.category === 'SOCIETY').length;
+    const countWater = state.issues.filter((i) => i.category === 'water').length;
+    const countRoad = state.issues.filter((i) => i.category === 'road').length;
+    const countEdu = state.issues.filter((i) => i.category === 'education').length;
+    const countSoc = state.issues.filter((i) => i.category === 'society').length;
 
     document.getElementById('count-water').textContent = `${countWater} Issue${countWater !== 1 ? 's' : ''}`;
     document.getElementById('count-road').textContent = `${countRoad} Issue${countRoad !== 1 ? 's' : ''}`;
@@ -319,8 +409,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let progressNodes = '<div class="issue-card-timeline">';
         progressNodes += `<div class="timeline-mini-dot filled"></div>`;
-        const has15d = issue.progressUpdates?.some(p => p.type === '15_DAY');
-        const has1m = issue.progressUpdates?.some(p => p.type === '1_MONTH');
+        const has15d = issue.history?.some(p => p.type === '15_DAY');
+        const has1m = issue.history?.some(p => p.type === '1_MONTH');
         progressNodes += `<div class="timeline-mini-line ${has15d ? 'filled' : ''}"></div>`;
         progressNodes += `<div class="timeline-mini-dot ${has15d ? 'filled' : ''}"></div>`;
         progressNodes += `<div class="timeline-mini-line ${has1m ? 'filled' : ''}"></div>`;
@@ -362,7 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
       filtered = filtered.filter(
         (i) =>
           i.title.toLowerCase().includes(q) ||
-          i.problemDescription.toLowerCase().includes(q) ||
+          i.description.toLowerCase().includes(q) ||
           (i.village && i.village.name.toLowerCase().includes(q))
       );
     }
@@ -379,8 +469,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let progressNodes = '<div class="issue-card-timeline" style="margin-top: 0.75rem;">';
         progressNodes += `<div class="timeline-mini-dot filled"></div>`;
-        const has15d = issue.progressUpdates?.some(p => p.type === '15_DAY');
-        const has1m = issue.progressUpdates?.some(p => p.type === '1_MONTH');
+        const has15d = issue.history?.some(p => p.type === '15_DAY');
+        const has1m = issue.history?.some(p => p.type === '1_MONTH');
         progressNodes += `<div class="timeline-mini-line ${has15d ? 'filled' : ''}"></div>`;
         progressNodes += `<div class="timeline-mini-dot ${has15d ? 'filled' : ''}"></div>`;
         progressNodes += `<div class="timeline-mini-line ${has1m ? 'filled' : ''}"></div>`;
@@ -399,7 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span>🏷️ ${getCategoryLabel(issue.category)}</span>
               </div>
               <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                ${escapeHtml(issue.problemDescription)}
+                ${escapeHtml(issue.description)}
               </p>
               ${progressNodes}
             </div>
@@ -419,38 +509,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const contentDiv = document.getElementById('issue-detail-content');
     
     // Prepare timeline data
-    const reportedDate = new Date(issue.reportedDate);
+    const created_at = new Date(issue.created_at);
     
     let timelineHtml = `
       <div class="timeline-node completed">
         <div class="timeline-node-title">Reported</div>
-        <div class="timeline-node-date">${reportedDate.toLocaleDateString()}</div>
-        <div class="timeline-node-desc">${escapeHtml(issue.problemDescription)}</div>
+        <div class="timeline-node-date">${created_at.toLocaleDateString()}</div>
+        <div class="timeline-node-desc">${escapeHtml(issue.description)}</div>
       </div>
       
       <div class="timeline-node completed">
         <div class="timeline-node-title">Initial Action Taken</div>
-        <div class="timeline-node-date">${reportedDate.toLocaleDateString()}</div>
-        <div class="timeline-node-desc">${escapeHtml(issue.actionTaken)}</div>
-        ${issue.media && issue.media.find(m => m.type === 'INITIAL' || m.type === 'BEFORE') ? 
+        <div class="timeline-node-date">${created_at.toLocaleDateString()}</div>
+        <div class="timeline-node-desc">${escapeHtml(issue.action_taken)}</div>
+        ${issue.attachments && issue.attachments.find(m => m.type === 'INITIAL' || m.type === 'BEFORE') ? 
           `<div class="timeline-node-photo">
-             <img src="${issue.media.find(m => m.type === 'INITIAL' || m.type === 'BEFORE').url}" alt="Initial Photo">
+             <img src="${issue.attachments.find(m => m.type === 'INITIAL' || m.type === 'BEFORE').url}" alt="Initial Photo">
            </div>` : ''}
       </div>
     `;
 
-    const update15d = issue.progressUpdates?.find(p => p.type === '15_DAY');
+    const update15d = issue.history?.find(p => p.type === '15_DAY');
     if (update15d) {
       timelineHtml += `
         <div class="timeline-node completed">
           <div class="timeline-node-title">15-Day Progress Update <span class="badge" style="background:var(--background); border:1px solid var(--surface-border); margin-left:8px;">${update15d.status.replace(/_/g, ' ')}</span></div>
-          <div class="timeline-node-date">${new Date(update15d.date).toLocaleDateString()}</div>
+          <div class="timeline-node-date">${new Date(update15d.scheduled_date).toLocaleDateString()}</div>
           <div class="timeline-node-desc">${escapeHtml(update15d.description)}</div>
           ${update15d.photoUrl ? `<div class="timeline-node-photo"><img src="${update15d.photoUrl}" alt="Progress Photo"></div>` : ''}
         </div>
       `;
     } else {
-      const due15d = new Date(reportedDate);
+      const due15d = new Date(created_at);
       due15d.setDate(due15d.getDate() + 15);
       const isOverdue = new Date() > due15d;
       
@@ -463,18 +553,18 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
-    const update1m = issue.progressUpdates?.find(p => p.type === '1_MONTH');
+    const update1m = issue.history?.find(p => p.type === '1_MONTH');
     if (update1m) {
       timelineHtml += `
         <div class="timeline-node completed">
           <div class="timeline-node-title">1-Month Progress Update <span class="badge" style="background:var(--background); border:1px solid var(--surface-border); margin-left:8px;">${update1m.status.replace(/_/g, ' ')}</span></div>
-          <div class="timeline-node-date">${new Date(update1m.date).toLocaleDateString()}</div>
+          <div class="timeline-node-date">${new Date(update1m.scheduled_date).toLocaleDateString()}</div>
           <div class="timeline-node-desc">${escapeHtml(update1m.description)}</div>
           ${update1m.photoUrl ? `<div class="timeline-node-photo"><img src="${update1m.photoUrl}" alt="Progress Photo"></div>` : ''}
         </div>
       `;
     } else {
-      const due1m = new Date(reportedDate);
+      const due1m = new Date(created_at);
       due1m.setMonth(due1m.getMonth() + 1);
       const isOverdue = new Date() > due1m;
       
@@ -501,7 +591,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="issue-detail-meta">
             <span>📍 ${escapeHtml(issue.village?.name || 'Unknown')}</span>
             <span>🏷️ ${getCategoryLabel(issue.category)}</span>
-            <span>📅 Reported: ${reportedDate.toLocaleDateString()}</span>
+            <span>📅 Reported: ${created_at.toLocaleDateString()}</span>
           </div>
         </div>
         ${getStatusBadge(issue.status)}
@@ -521,11 +611,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="detail-section-title">Expenditure Summary</div>
             <div style="font-size: 0.85rem; margin-bottom: 0.75rem;">
               <strong>Initial Estimate:</strong><br>
-              ${escapeHtml(issue.expenditureDetails || 'None provided')}
+              ${escapeHtml(issue.expenditure || 'None provided')}
             </div>
-            ${issue.progressUpdates?.map(p => p.expenditure ? `
+            ${issue.history?.map(p => p.expenditure ? `
               <div style="font-size: 0.85rem; margin-bottom: 0.75rem;">
-                <strong>${p.type === '15_DAY' ? '15-Day' : '1-Month'} Update:</strong><br>
+                <strong>${p.type === '15_DAY' ? '15-Day' : '1-Month'} Upscheduled_date:</strong><br>
                 ${escapeHtml(p.expenditure)}
               </div>
             ` : '').join('') || ''}
@@ -610,7 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     gridEl.innerHTML = state.meetings
       .map((mtg) => {
-        const dateStr = new Date(mtg.date).toLocaleDateString('en-IN', {
+        const dateStr = new Date(mtg.scheduled_date).toLocaleDateString('en-IN', {
           weekday: 'short',
           month: 'short',
           day: 'numeric',
@@ -624,7 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="meeting-date-badge">📅 ${dateStr}</div>
             <h4 style="font-size: 1rem; font-weight: 700;">Gram Sabha Meeting - ${escapeHtml(vName)}</h4>
             <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.4rem;">
-              👥 Attendees: <strong>${mtg.attendeesCount} members</strong>
+              👥 Attendees: <strong>${mtg?.attendees?.length || 0} members</strong>
             </div>
             ${mtg.notes ? `<p style="font-size: 0.84rem; margin-top: 0.5rem; color: var(--text-main);">${escapeHtml(mtg.notes)}</p>` : ''}
             <div style="margin-top: 0.75rem;">
@@ -645,7 +735,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <div style="padding: 0.6rem 0; border-bottom: 1px solid var(--surface-border);">
           <strong style="font-size: 0.85rem;">Gram Sabha - ${escapeHtml(vName)}</strong>
-          <div style="font-size: 0.78rem; color: var(--text-muted);">👥 ${mtg.attendeesCount} Members | Status: ${mtg.status}</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted);">👥 ${mtg?.attendees?.length || 0} Members | Status: ${mtg.status}</div>
         </div>
       `;
     }).join('');
@@ -655,7 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const listEl = document.getElementById('verification-list');
     if (!listEl) return;
 
-    const pending = state.issues.filter((i) => i.status === 'SUBMITTED' || i.status === 'REVISION_REQUESTED');
+    const pending = state.issues.filter((i) => i.status === 'reported' || i.status === 'escalated');
 
     if (pending.length === 0) {
       listEl.innerHTML = `<div style="text-align: center; padding: 3rem; background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--surface-border);">
@@ -668,7 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
     listEl.innerHTML = pending
       .map((issue) => {
         const vName = issue.village?.name || 'Unknown';
-        const proofs = issue.media || [];
+        const proofs = issue.attachments || [];
         return `
           <div class="card-box margin-top">
             <div class="flex-between">
@@ -679,8 +769,8 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
               <button class="btn btn-primary btn-sm" onclick="openReviewModal('${issue.id}')">Review & Verify</button>
             </div>
-            <p style="font-size: 0.88rem; margin-top: 0.75rem;"><strong>Problem:</strong> ${escapeHtml(issue.problemDescription)}</p>
-            <p style="font-size: 0.88rem; margin-top: 0.25rem;"><strong>Action Taken:</strong> ${escapeHtml(issue.actionTaken)}</p>
+            <p style="font-size: 0.88rem; margin-top: 0.75rem;"><strong>Problem:</strong> ${escapeHtml(issue.description)}</p>
+            <p style="font-size: 0.88rem; margin-top: 0.25rem;"><strong>Action Taken:</strong> ${escapeHtml(issue.action_taken)}</p>
             ${proofs.length > 0 ? `<div class="proof-photos-preview" style="margin-top: 0.75rem;">${proofs.map((p) => `<img src="${p.url}" class="proof-img">`).join('')}</div>` : ''}
           </div>
         `;
@@ -690,17 +780,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- HELPER FUNCTIONS ---
   function getStatusBadge(status) {
-    const s = (status || 'REPORTED').toLowerCase();
-    const formattedStatus = (status || 'REPORTED').replace(/_/g, ' ');
+    const s = (status || 'reported').toLowerCase();
+    const formattedStatus = (status || 'reported').replace(/_/g, ' ');
     return `<span class="status-pill status-${s}">${formattedStatus}</span>`;
   }
 
   function getCategoryLabel(cat) {
     switch (cat) {
-      case 'WATER': return '💧 Water';
-      case 'ROAD': return '🛣️ Road';
-      case 'EDUCATION': return '🎓 Education';
-      case 'SOCIETY': return '👥 Society';
+      case 'water': return '💧 Water';
+      case 'road': return '🛣️ Road';
+      case 'education': return '🎓 Education';
+      case 'society': return '👥 Society';
       default: return cat;
     }
   }
@@ -728,19 +818,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('review-issue-id').value = issue.id;
     const detailsContainer = document.getElementById('review-issue-details');
-    const proofs = issue.media || [];
-    const timeline = issue.timeline || [];
+    const proofs = issue.attachments || [];
+    const timeline = issue.history || [];
 
     detailsContainer.innerHTML = `
       <h4 style="font-size: 1.1rem; font-weight: 800;">${escapeHtml(issue.title)}</h4>
       <p style="font-size: 0.85rem; color: var(--text-muted);">Village: ${escapeHtml(issue.village?.name || 'Unknown')} | Status: <strong>${issue.status}</strong></p>
       <div style="margin-top: 0.75rem; background: var(--background); padding: 0.85rem; border-radius: var(--radius-md);">
-        <p style="font-size: 0.88rem;"><strong>Problem Description:</strong> ${escapeHtml(issue.problemDescription)}</p>
-        <p style="font-size: 0.88rem; margin-top: 0.4rem;"><strong>Resolution Action:</strong> ${escapeHtml(issue.actionTaken)}</p>
-        ${issue.expenditureDetails ? `<p style="font-size: 0.85rem; color: var(--primary); font-weight: 700; margin-top: 0.4rem;">Expenditure: ${escapeHtml(issue.expenditureDetails)}</p>` : ''}
+        <p style="font-size: 0.88rem;"><strong>Problem Description:</strong> ${escapeHtml(issue.description)}</p>
+        <p style="font-size: 0.88rem; margin-top: 0.4rem;"><strong>Resolution Action:</strong> ${escapeHtml(issue.action_taken)}</p>
+        ${issue.expenditure ? `<p style="font-size: 0.85rem; color: var(--primary); font-weight: 700; margin-top: 0.4rem;">Expenditure: ${escapeHtml(issue.expenditure)}</p>` : ''}
       </div>
       ${proofs.length > 0 ? `<div style="margin-top: 0.75rem;"><strong>Uploaded Physical Proofs:</strong><div class="proof-photos-preview" style="margin-top: 0.4rem;">${proofs.map((p) => `<img src="${p.url}" class="proof-img">`).join('')}</div></div>` : ''}
-      ${timeline.length > 0 ? `<div style="margin-top: 0.85rem; font-size: 0.82rem;"><strong>Activity Timeline:</strong><ul style="padding-left: 1.2rem; margin-top: 0.25rem;">${timeline.map((t) => `<li>${t.note} (${new Date(t.date).toLocaleDateString()})</li>`).join('')}</ul></div>` : ''}
+      ${timeline.length > 0 ? `<div style="margin-top: 0.85rem; font-size: 0.82rem;"><strong>Activity Timeline:</strong><ul style="padding-left: 1.2rem; margin-top: 0.25rem;">${timeline.map((t) => `<li>${t.note} (${new Date(t.scheduled_date).toLocaleDateString()})</li>`).join('')}</ul></div>` : ''}
     `;
 
     modalAdminReview.classList.add('active');
@@ -765,10 +855,10 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     const title = document.getElementById('issue-title').value;
     const category = document.getElementById('issue-category').value;
-    const villageId = document.getElementById('issue-village').value;
-    const problemDescription = document.getElementById('issue-desc').value;
-    const actionTaken = document.getElementById('issue-action').value;
-    const expenditureDetails = document.getElementById('issue-expenditure').value;
+    const village_id = document.getElementById('issue-village').value;
+    const description = document.getElementById('issue-desc').value;
+    const action_taken = document.getElementById('issue-action').value;
+    const expenditure = document.getElementById('issue-expenditure').value;
     const location = document.getElementById('issue-location').value;
     const notes = document.getElementById('issue-notes').value;
 
@@ -780,20 +870,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const issuePayload = {
       title,
       category,
-      villageId,
-      problemDescription,
-      actionTaken,
-      expenditureDetails,
+      village_id,
+      description,
+      action_taken,
+      expenditure,
       beforePhotoUrls: [currentInitialPhotoData], // Passed to backend mapping
-      status: 'REPORTED',
-      submittedById: 'leader-001',
+      status: 'reported',
+      leader_idId: 'leader-001',
     };
 
     if (notes) {
-      issuePayload.problemDescription += `\n\nNotes: ${notes}`;
+      issuePayload.description += `\n\nNotes: ${notes}`;
     }
     if (location) {
-      issuePayload.problemDescription += `\nLocation: ${location}`;
+      issuePayload.description += `\nLocation: ${location}`;
     }
 
     if (!state.isOnline) {
@@ -866,8 +956,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Update UI optimistically
       const issue = state.issues.find(i => i.id === issueId);
       if (issue) {
-        if (!issue.progressUpdates) issue.progressUpdates = [];
-        issue.progressUpdates.push({ ...payload, date: new Date().toISOString() });
+        if (!issue.history) issue.history = [];
+        issue.history.push({ ...payload, scheduled_date: new Date().toISOString() });
         openIssueDetail(issueId);
       }
       return;
@@ -908,12 +998,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // CREATE MEETING FORM SUBMISSION
   formCreateMeeting.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const villageId = document.getElementById('meeting-village').value;
+    const village_id = document.getElementById('meeting-village').value;
     const date = document.getElementById('meeting-date').value;
-    const attendeesCount = Number(document.getElementById('meeting-attendees').value);
+    const attendees_count = Number(document.getElementById('meeting-attendees').value);
     const notes = document.getElementById('meeting-notes').value;
 
-    const meetingPayload = { villageId, date, attendeesCount, notes };
+    const meetingPayload = { village_id, date, attendees_count, notes };
 
     try {
       const res = await apiFetch('/v1/meetings', {
@@ -940,7 +1030,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await apiFetch(`/v1/issues/${issueId}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: 'VERIFIED', adminReviewNote: note || 'Verified by Admin' }),
+        body: JSON.stringify({ status: 'resolved', adminReviewNote: note || 'Verified by Admin' }),
       });
 
       if (res.ok) {
@@ -960,7 +1050,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await apiFetch(`/v1/issues/${issueId}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: 'REVISION_REQUESTED', adminReviewNote: note || 'Revision requested by Admin' }),
+        body: JSON.stringify({ status: 'escalated', adminReviewNote: note || 'Revision requested by Admin' }),
       });
 
       if (res.ok) {
@@ -1008,5 +1098,5 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Initialize
-  initData();
+  checkAuth();
 });

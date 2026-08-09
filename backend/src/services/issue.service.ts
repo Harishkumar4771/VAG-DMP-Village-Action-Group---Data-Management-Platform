@@ -1,327 +1,168 @@
 import prisma from '../config/db';
-import { CreateIssueDto, UpdateIssueDto, SubmissionStatus, IssueCategory, MediaType } from '../types';
-import { mockDb, MockIssue } from '../config/mockStore';
+import { CreateIssueDto, UpdateIssueDto, IssueStatus, IssueCategory, AttachmentType } from '../types';
 
 export const getAllIssues = async (filters?: {
   category?: string;
   status?: string;
-  villageId?: string;
-  submittedBy?: string;
+  village_id?: string;
+  leader_id?: string;
   search?: string;
   limit?: number;
   offset?: number;
 }) => {
-  try {
-    const where: any = {};
+  const where: any = { is_deleted: false };
 
-    if (filters?.category) {
-      where.category = filters.category as IssueCategory;
-    }
-
-    if (filters?.status) {
-      where.status = filters.status as SubmissionStatus;
-    }
-
-    if (filters?.villageId) {
-      where.villageId = filters.villageId;
-    }
-
-    if (filters?.submittedBy) {
-      where.submittedById = filters.submittedBy;
-    }
-
-    if (filters?.search) {
-      where.OR = [
-        { title: { contains: filters.search, mode: 'insensitive' } },
-        { problemDescription: { contains: filters.search, mode: 'insensitive' } },
-        { actionTaken: { contains: filters.search, mode: 'insensitive' } },
-      ];
-    }
-
-    const [items, total] = await Promise.all([
-      prisma.issue.findMany({
-        where,
-        include: {
-          village: { select: { id: true, name: true, district: true } },
-          submittedBy: { select: { id: true, name: true, phone: true } },
-          media: true,
-          timeline: { orderBy: { date: 'asc' } },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: filters?.limit ? Number(filters.limit) : 50,
-        skip: filters?.offset ? Number(filters.offset) : 0,
-      }),
-      prisma.issue.count({ where }),
-    ]);
-
-    return { items, total };
-  } catch (error) {
-    // Fallback to in-memory store
-    let items = [...mockDb.issues];
-
-    if (filters?.category) {
-      items = items.filter((i) => i.category === filters.category);
-    }
-    if (filters?.status) {
-      items = items.filter((i) => i.status === filters.status);
-    }
-    if (filters?.villageId) {
-      items = items.filter((i) => i.villageId === filters.villageId);
-    }
-    if (filters?.submittedBy) {
-      items = items.filter((i) => i.submittedById === filters.submittedBy);
-    }
-    if (filters?.search) {
-      const s = filters.search.toLowerCase();
-      items = items.filter(
-        (i) =>
-          i.title.toLowerCase().includes(s) ||
-          i.problemDescription.toLowerCase().includes(s) ||
-          i.actionTaken.toLowerCase().includes(s)
-      );
-    }
-
-    const total = items.length;
-    const formatted = items.map((iss) => ({
-      ...iss,
-      village: mockDb.villages.find((v) => v.id === iss.villageId) || { id: iss.villageId, name: 'Chandpur', district: 'Pune' },
-      submittedBy: mockDb.users.find((u) => u.id === iss.submittedById) || { id: iss.submittedById, name: 'Sunita Kumar', phone: '+91 98765 43210' },
-      media: mockDb.media.filter((m) => m.issueId === iss.id),
-      timeline: mockDb.timeline.filter((t) => t.issueId === iss.id),
-      progressUpdates: mockDb.progressUpdates.filter((pu) => pu.issueId === iss.id),
-    }));
-
-    return { items: formatted, total };
+  if (filters?.category) {
+    where.category = filters.category as IssueCategory;
   }
+
+  if (filters?.status) {
+    where.status = filters.status as IssueStatus;
+  }
+
+  if (filters?.village_id) {
+    where.village_id = filters.village_id;
+  }
+
+  if (filters?.leader_id) {
+    where.leader_id = filters.leader_id;
+  }
+
+  if (filters?.search) {
+    where.OR = [
+      { title: { contains: filters.search, mode: 'insensitive' } },
+      { description: { contains: filters.search, mode: 'insensitive' } },
+      { action_taken: { contains: filters.search, mode: 'insensitive' } },
+    ];
+  }
+
+  const [items, total] = await Promise.all([
+    prisma.issue.findMany({
+      where,
+      include: {
+        village: { select: { id: true, name: true, district: true } },
+        leader: { select: { id: true, full_name: true, phone: true } },
+        attachments: true,
+        history: { orderBy: { changed_at: 'asc' } },
+      },
+      orderBy: { created_at: 'desc' },
+      take: filters?.limit ? Number(filters.limit) : 50,
+      skip: filters?.offset ? Number(filters.offset) : 0,
+    }),
+    prisma.issue.count({ where }),
+  ]);
+
+  return { items, total };
 };
 
 export const getIssueById = async (id: string) => {
-  try {
-    const issue = await prisma.issue.findUnique({
-      where: { id },
-      include: {
-        village: true,
-        submittedBy: { select: { id: true, name: true, phone: true, role: true } },
-        media: true,
-        timeline: { orderBy: { date: 'asc' } },
-      },
-    });
+  const issue = await prisma.issue.findUnique({
+    where: { id },
+    include: {
+      village: true,
+      leader: { select: { id: true, full_name: true, phone: true, role: true } },
+      attachments: true,
+      history: { orderBy: { changed_at: 'asc' } },
+    },
+  });
 
-    if (issue) return issue;
-  } catch (error) {
-    // continue to mock check below
-  }
-
-  const iss = mockDb.issues.find((i) => i.id === id);
-  if (!iss) {
-    const error: any = new Error('Issue submission not found');
+  if (!issue) {
+    const error: any = new Error('Issue not found');
     error.status = 404;
     throw error;
   }
-
-  return {
-    ...iss,
-    village: mockDb.villages.find((v) => v.id === iss.villageId),
-    submittedBy: mockDb.users.find((u) => u.id === iss.submittedById),
-    media: mockDb.media.filter((m) => m.issueId === iss.id),
-    timeline: mockDb.timeline.filter((t) => t.issueId === iss.id),
-    progressUpdates: mockDb.progressUpdates.filter((pu) => pu.issueId === iss.id),
-  };
+  return issue;
 };
 
 export const createIssue = async (data: CreateIssueDto, fallbackUserId?: string) => {
-  const id = data.id || `iss_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  const submittedById = data.submittedById || fallbackUserId || 'leader-001';
-  const reportedDate = data.reportedDate ? new Date(data.reportedDate) : new Date();
-  const status = data.status || 'SUBMITTED';
+  const leader_id = data.leader_id || fallbackUserId;
+  if (!leader_id) throw new Error("leader_id is required");
 
-  try {
-    const mediaCreates: any[] = [];
-    if (data.beforePhotoUrls) {
-      for (const url of data.beforePhotoUrls) mediaCreates.push({ url, type: 'BEFORE' as MediaType });
-    }
-    if (data.afterPhotoUrls) {
-      for (const url of data.afterPhotoUrls) mediaCreates.push({ url, type: 'AFTER' as MediaType });
-    }
-    if (data.documentUrls) {
-      for (const url of data.documentUrls) mediaCreates.push({ url, type: 'DOCUMENT' as MediaType });
-    }
+  const created_at = data.created_at ? new Date(data.created_at) : new Date();
+  const status = data.status || 'reported';
 
-    return await prisma.issue.create({
-      data: {
-        id,
-        title: data.title,
-        category: data.category,
-        status,
-        problemDescription: data.problemDescription,
-        actionTaken: data.actionTaken,
-        expenditureDetails: data.expenditureDetails,
-        villageId: data.villageId,
-        submittedById,
-        reportedDate,
-        resolvedDate: data.resolvedDate ? new Date(data.resolvedDate) : null,
-        timeline: {
-          create: [{ status: 'SUBMITTED', date: reportedDate, note: 'Submission recorded', completed: true }],
-        },
-        media: { create: mediaCreates },
-      },
-      include: { village: true, submittedBy: true, media: true, timeline: true },
-    });
-  } catch (error) {
-    const newIssue: MockIssue = {
-      id,
+  const attachmentCreates = data.attachments?.map(a => ({
+    type: a.type,
+    storage_path: a.storage_path,
+    uploaded_by: leader_id
+  })) || [];
+
+  return await prisma.issue.create({
+    data: {
+      id: data.id,
+      local_uuid: data.local_uuid,
       title: data.title,
       category: data.category,
-      status: status as any,
-      problemDescription: data.problemDescription,
-      actionTaken: data.actionTaken,
-      expenditureDetails: data.expenditureDetails || null,
-      villageId: data.villageId,
-      submittedById,
-      reportedDate: reportedDate.toISOString(),
-      resolvedDate: data.resolvedDate ? new Date(data.resolvedDate).toISOString() : null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    mockDb.issues.push(newIssue);
-
-    mockDb.timeline.push({
-      id: `tml_${Date.now()}`,
-      issueId: id,
-      status: 'SUBMITTED',
-      date: reportedDate.toISOString(),
-      note: 'Submission recorded',
-      completed: true,
-    });
-
-    return {
-      ...newIssue,
-      village: mockDb.villages.find((v) => v.id === data.villageId),
-      submittedBy: mockDb.users.find((u) => u.id === submittedById),
-      media: mockDb.media.filter((m) => m.issueId === id),
-      timeline: mockDb.timeline.filter((t) => t.issueId === id),
-    };
-  }
+      status,
+      description: data.description,
+      action_taken: data.action_taken,
+      priority: data.priority,
+      village_id: data.village_id,
+      leader_id,
+      created_at,
+      resolved_at: data.resolved_at ? new Date(data.resolved_at) : null,
+      history: {
+        create: [{ new_status: status, changed_at: created_at, remarks: 'Submission recorded', changed_by: leader_id }],
+      },
+      attachments: { create: attachmentCreates },
+    },
+    include: { village: true, leader: true, attachments: true, history: true },
+  });
 };
 
-export const updateIssue = async (id: string, data: UpdateIssueDto) => {
-  try {
-    const existing = await prisma.issue.findUnique({ where: { id } });
-    if (existing) {
-      const updateData: any = { ...data };
-      if (data.resolvedDate) updateData.resolvedDate = new Date(data.resolvedDate);
-      return await prisma.issue.update({
-        where: { id },
-        data: updateData,
-        include: { village: true, media: true, timeline: true },
-      });
-    }
-  } catch (error) {
-    // fallback below
-  }
+export const updateIssue = async (id: string, data: UpdateIssueDto, userId?: string) => {
+  const updateData: any = { ...data };
+  if (data.resolved_at) updateData.resolved_at = new Date(data.resolved_at);
+  updateData.updated_at = new Date();
 
-  const idx = mockDb.issues.findIndex((i) => i.id === id);
-  if (idx === -1) {
-    const error: any = new Error('Issue submission not found');
-    error.status = 404;
-    throw error;
-  }
-
-  mockDb.issues[idx] = {
-    ...mockDb.issues[idx],
-    ...(data as any),
-    resolvedDate: data.resolvedDate ? new Date(data.resolvedDate).toISOString() : mockDb.issues[idx].resolvedDate,
-    updatedAt: new Date().toISOString(),
-  };
-
-  return {
-    ...mockDb.issues[idx],
-    village: mockDb.villages.find((v) => v.id === mockDb.issues[idx].villageId),
-    submittedBy: mockDb.users.find((u) => u.id === mockDb.issues[idx].submittedById),
-    media: mockDb.media.filter((m) => m.issueId === id),
-    timeline: mockDb.timeline.filter((t) => t.issueId === id),
-  };
+  return await prisma.issue.update({
+    where: { id },
+    data: updateData,
+    include: { village: true, attachments: true, history: true },
+  });
 };
 
 export const updateIssueStatus = async (
   id: string,
-  status: SubmissionStatus,
-  adminReviewNote?: string,
-  note?: string
+  status: IssueStatus,
+  verification_notes?: string,
+  remarks?: string,
+  userId?: string
 ) => {
-  try {
-    const existing = await prisma.issue.findUnique({ where: { id } });
-    if (existing) {
-      const isResolved = status === 'VERIFIED';
-      const resolvedDate = isResolved ? new Date() : existing.resolvedDate;
-
-      return await prisma.issue.update({
-        where: { id },
-        data: {
-          status,
-          adminReviewNote: adminReviewNote || existing.adminReviewNote,
-          resolvedDate,
-          timeline: {
-            create: {
-              status,
-              date: new Date(),
-              note: note || (adminReviewNote ? `Admin Note: ${adminReviewNote}` : `Status updated to ${status}`),
-              completed: status === 'VERIFIED',
-            },
-          },
-        },
-        include: { village: true, media: true, timeline: { orderBy: { date: 'asc' } } },
-      });
-    }
-  } catch (error) {
-    // fallback below
-  }
-
-  const idx = mockDb.issues.findIndex((i) => i.id === id);
-  if (idx === -1) {
-    const error: any = new Error('Issue submission not found');
+  const existing = await prisma.issue.findUnique({ where: { id } });
+  if (!existing) {
+    const error: any = new Error('Issue not found');
     error.status = 404;
     throw error;
   }
 
-  const isResolved = status === 'VERIFIED';
-  mockDb.issues[idx].status = status as any;
-  if (adminReviewNote) mockDb.issues[idx].adminReviewNote = adminReviewNote;
-  if (isResolved) mockDb.issues[idx].resolvedDate = new Date().toISOString();
-  mockDb.issues[idx].updatedAt = new Date().toISOString();
+  const isResolved = status === 'resolved';
+  const resolved_at = isResolved ? new Date() : existing.resolved_at;
 
-  mockDb.timeline.push({
-    id: `tml_${Date.now()}`,
-    issueId: id,
-    status,
-    date: new Date().toISOString(),
-    note: note || (adminReviewNote ? `Admin Note: ${adminReviewNote}` : `Status updated to ${status}`),
-    completed: isResolved,
+  return await prisma.issue.update({
+    where: { id },
+    data: {
+      status,
+      verification_notes: verification_notes || existing.verification_notes,
+      resolved_at,
+      updated_at: new Date(),
+      history: {
+        create: {
+          old_status: existing.status,
+          new_status: status,
+          changed_at: new Date(),
+          remarks: remarks || (verification_notes ? `Admin Note: ${verification_notes}` : `Status updated to ${status}`),
+          changed_by: userId,
+        },
+      },
+    },
+    include: { village: true, attachments: true, history: { orderBy: { changed_at: 'asc' } } },
   });
-
-  return {
-    ...mockDb.issues[idx],
-    village: mockDb.villages.find((v) => v.id === mockDb.issues[idx].villageId),
-    submittedBy: mockDb.users.find((u) => u.id === mockDb.issues[idx].submittedById),
-    media: mockDb.media.filter((m) => m.issueId === id),
-    timeline: mockDb.timeline.filter((t) => t.issueId === id),
-  };
 };
 
 export const deleteIssue = async (id: string) => {
-  try {
-    const existing = await prisma.issue.findUnique({ where: { id } });
-    if (existing) {
-      await prisma.issueTimelineEntry.deleteMany({ where: { issueId: id } });
-      await prisma.media.deleteMany({ where: { issueId: id } });
-      return await prisma.issue.delete({ where: { id } });
-    }
-  } catch (error) {
-    // fallback below
-  }
-
-  const idx = mockDb.issues.findIndex((i) => i.id === id);
-  if (idx !== -1) {
-    mockDb.issues.splice(idx, 1);
-  }
+  return await prisma.issue.update({
+    where: { id },
+    data: { is_deleted: true, updated_at: new Date() }
+  });
 };
