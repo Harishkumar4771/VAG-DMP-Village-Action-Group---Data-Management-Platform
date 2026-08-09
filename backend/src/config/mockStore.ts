@@ -56,15 +56,16 @@ export interface MockIssue {
   updatedAt: string;
 }
 
-export interface MockMeeting {
+export interface MockProgressUpdate {
   id: string;
-  villageId: string;
+  issueId: string;
+  type: '15_DAY' | '1_MONTH';
+  status: 'NOT_STARTED' | 'WORK_IN_PROGRESS' | 'WAITING_APPROVAL' | 'WAITING_RESOURCES' | 'COMPLETED';
+  description: string;
+  photoUrl?: string;
+  expenditure?: string;
+  notes?: string;
   date: string;
-  attendeesCount: number;
-  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
-  notes?: string | null;
-  createdAt: string;
-  updatedAt: string;
 }
 
 class MockDatabase {
@@ -150,25 +151,25 @@ class MockDatabase {
   issues: MockIssue[] = [
     {
       id: 'iss-001',
-      title: 'Water pipeline repair near Primary School',
+      title: 'Water Pipeline Leak in Ward 3',
       category: 'WATER',
-      status: 'VERIFIED',
+      status: 'COMPLETED',
       problemDescription: 'Leaking main water supply line causing water scarcity in Ward 3.',
-      actionTaken: 'Repaired joint pipe and sealed leaks with GP approval.',
+      actionTaken: 'Discussed with Gram Panchayat and submitted repair request.',
       expenditureDetails: '₹4,500 spent on replacement PVC pipes and labor.',
       villageId: 'vlg-001',
       submittedById: 'leader-001',
       reportedDate: '2026-07-20T08:30:00Z',
-      resolvedDate: '2026-07-25T16:00:00Z',
-      adminReviewNote: 'Verified with Gram Panchayat letter attached.',
+      resolvedDate: '2026-08-04T16:00:00Z',
+      adminReviewNote: null,
       createdAt: '2026-07-20T08:30:00Z',
-      updatedAt: '2026-07-25T16:00:00Z',
+      updatedAt: '2026-08-04T16:00:00Z',
     },
     {
       id: 'iss-002',
       title: 'Solar Street Light Installation in Sector B',
       category: 'ROAD',
-      status: 'SUBMITTED',
+      status: 'REPORTED',
       problemDescription: 'Unlit street section leading to safety concerns at night.',
       actionTaken: 'Submitted proposal to Gram Panchayat and surveyed locations.',
       expenditureDetails: 'Estimated ₹12,000 for 4 solar poles.',
@@ -182,29 +183,29 @@ class MockDatabase {
       id: 'iss-003',
       title: 'Primary School Roof Waterproofing',
       category: 'EDUCATION',
-      status: 'PENDING_SYNC',
+      status: 'IN_PROGRESS',
       problemDescription: 'Roof leaks during heavy rains impacting Class 4 room.',
       actionTaken: 'Temporary tarp installed; detailed estimate prepared.',
       expenditureDetails: '₹8,200 for waterproof coating.',
       villageId: 'vlg-002',
       submittedById: 'leader-001',
-      reportedDate: '2026-08-04T12:00:00Z',
-      createdAt: '2026-08-04T12:00:00Z',
-      updatedAt: '2026-08-04T12:00:00Z',
+      reportedDate: '2026-07-25T12:00:00Z',
+      createdAt: '2026-07-25T12:00:00Z',
+      updatedAt: '2026-08-09T12:00:00Z',
     },
     {
       id: 'iss-004',
       title: 'Community Hall Drainage Clearance',
       category: 'SOCIETY',
-      status: 'REVISION_REQUESTED',
+      status: 'WAITING',
       problemDescription: 'Blocked stormwater drain causing waterlogging near Samaj Mandir.',
       actionTaken: 'Organized volunteer cleanup drive; requested GP suction truck.',
       expenditureDetails: '₹1,500 for tools & gloves.',
       villageId: 'vlg-003',
       submittedById: 'leader-001',
-      reportedDate: '2026-08-01T09:00:00Z',
-      adminReviewNote: 'Please attach official Gram Panchayat receipt for expenditure.',
-      createdAt: '2026-08-01T09:00:00Z',
+      reportedDate: '2026-07-28T09:00:00Z',
+      adminReviewNote: null,
+      createdAt: '2026-07-28T09:00:00Z',
       updatedAt: '2026-08-03T11:00:00Z',
     },
   ];
@@ -236,16 +237,16 @@ class MockDatabase {
     {
       id: 'med-001',
       url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b3?auto=format&fit=crop&w=600&q=80',
-      type: 'BEFORE',
+      type: 'INITIAL',
       issueId: 'iss-001',
-      createdAt: new Date().toISOString(),
+      createdAt: '2026-07-20T08:30:00Z',
     },
     {
       id: 'med-002',
       url: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80',
-      type: 'AFTER',
+      type: 'PROGRESS',
       issueId: 'iss-001',
-      createdAt: new Date().toISOString(),
+      createdAt: '2026-08-04T16:00:00Z',
     },
   ];
 
@@ -253,20 +254,61 @@ class MockDatabase {
     {
       id: 'tml-001',
       issueId: 'iss-001',
-      status: 'SUBMITTED',
+      status: 'REPORTED',
       date: '2026-07-20T08:30:00Z',
-      note: 'Issue reported by Leader',
+      note: 'Pipeline leakage identified and reported.',
       completed: true,
     },
     {
       id: 'tml-002',
       issueId: 'iss-001',
-      status: 'VERIFIED',
-      date: '2026-07-25T16:00:00Z',
-      note: 'Verified and closed by Admin',
+      status: 'ACTION_INITIATED',
+      date: '2026-07-20T08:30:00Z',
+      note: 'Discussed with Gram Panchayat and submitted repair request.',
       completed: true,
+    },
+    {
+      id: 'tml-003',
+      issueId: 'iss-001',
+      status: 'COMPLETED',
+      date: '2026-08-04T16:00:00Z',
+      note: 'Repaired joint pipe and sealed leaks with GP approval.',
+      completed: true,
+    },
+  ];
+
+  progressUpdates: MockProgressUpdate[] = [
+    {
+      id: 'pu-001',
+      issueId: 'iss-001',
+      type: '15_DAY',
+      status: 'WORK_IN_PROGRESS',
+      description: 'PVC pipe replacement underway. GP sanctioned labor budget.',
+      photoUrl: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&w=600&q=80',
+      expenditure: '₹2,000 advance for materials',
+      date: '2026-08-04T10:00:00Z',
+    },
+    {
+      id: 'pu-002',
+      issueId: 'iss-001',
+      type: '1_MONTH',
+      status: 'COMPLETED',
+      description: 'All repairs completed. Water supply restored to Ward 3.',
+      photoUrl: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80',
+      expenditure: '₹4,500 total (PVC pipes + labor)',
+      date: '2026-08-04T16:00:00Z',
+    },
+    {
+      id: 'pu-003',
+      issueId: 'iss-003',
+      type: '15_DAY',
+      status: 'WORK_IN_PROGRESS',
+      description: 'Tarp installed as temporary fix. Contractor visited for waterproof coating estimate.',
+      expenditure: '₹1,200 for temporary tarp',
+      date: '2026-08-09T12:00:00Z',
     },
   ];
 }
 
 export const mockDb = new MockDatabase();
+

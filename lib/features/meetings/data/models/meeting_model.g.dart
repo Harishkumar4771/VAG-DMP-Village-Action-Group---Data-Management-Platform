@@ -15,7 +15,7 @@ extension GetMeetingModelCollection on Isar {
 
 const MeetingModelSchema = CollectionSchema(
   name: r'MeetingModel',
-  id: -441751663,
+  id: -58648187183255,
   properties: {
     r'attendeesCount': PropertySchema(
       id: 0,
@@ -72,7 +72,7 @@ const MeetingModelSchema = CollectionSchema(
   idName: r'isarId',
   indexes: {
     r'id': IndexSchema(
-      id: -1955831,
+      id: -32684016739934,
       name: r'id',
       unique: true,
       replace: true,
@@ -85,7 +85,7 @@ const MeetingModelSchema = CollectionSchema(
       ],
     ),
     r'villageId': IndexSchema(
-      id: -570512749,
+      id: -32233256718329,
       name: r'villageId',
       unique: false,
       replace: false,
@@ -98,7 +98,7 @@ const MeetingModelSchema = CollectionSchema(
       ],
     ),
     r'syncStatus': IndexSchema(
-      id: 858239288,
+      id: 823953937504568,
       name: r'syncStatus',
       unique: false,
       replace: false,

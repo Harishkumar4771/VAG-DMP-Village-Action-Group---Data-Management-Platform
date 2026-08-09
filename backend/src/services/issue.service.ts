@@ -88,6 +88,7 @@ export const getAllIssues = async (filters?: {
       submittedBy: mockDb.users.find((u) => u.id === iss.submittedById) || { id: iss.submittedById, name: 'Sunita Kumar', phone: '+91 98765 43210' },
       media: mockDb.media.filter((m) => m.issueId === iss.id),
       timeline: mockDb.timeline.filter((t) => t.issueId === iss.id),
+      progressUpdates: mockDb.progressUpdates.filter((pu) => pu.issueId === iss.id),
     }));
 
     return { items: formatted, total };
@@ -124,6 +125,7 @@ export const getIssueById = async (id: string) => {
     submittedBy: mockDb.users.find((u) => u.id === iss.submittedById),
     media: mockDb.media.filter((m) => m.issueId === iss.id),
     timeline: mockDb.timeline.filter((t) => t.issueId === iss.id),
+    progressUpdates: mockDb.progressUpdates.filter((pu) => pu.issueId === iss.id),
   };
 };
 

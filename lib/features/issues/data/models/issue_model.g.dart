@@ -15,7 +15,7 @@ extension GetIssueModelCollection on Isar {
 
 const IssueModelSchema = CollectionSchema(
   name: r'IssueModel',
-  id: -1063929451,
+  id: -49858367599285,
   properties: {
     r'actionTaken': PropertySchema(
       id: 0,
@@ -124,7 +124,7 @@ const IssueModelSchema = CollectionSchema(
   idName: r'isarId',
   indexes: {
     r'id': IndexSchema(
-      id: -788792354,
+      id: -32684016739934,
       name: r'id',
       unique: true,
       replace: true,
@@ -137,7 +137,7 @@ const IssueModelSchema = CollectionSchema(
       ],
     ),
     r'villageId': IndexSchema(
-      id: -1001003021,
+      id: -32233256718329,
       name: r'villageId',
       unique: false,
       replace: false,
@@ -150,7 +150,7 @@ const IssueModelSchema = CollectionSchema(
       ],
     ),
     r'syncStatus': IndexSchema(
-      id: 548892940,
+      id: 823953937504568,
       name: r'syncStatus',
       unique: false,
       replace: false,
@@ -163,7 +163,7 @@ const IssueModelSchema = CollectionSchema(
       ],
     ),
     r'submittedBy': IndexSchema(
-      id: -718412053,
+      id: -84170936743535,
       name: r'submittedBy',
       unique: false,
       replace: false,
@@ -3983,7 +3983,7 @@ extension IssueModelQueryProperty
 
 const IssueTimelineEntryModelSchema = Schema(
   name: r'IssueTimelineEntryModel',
-  id: -846990487,
+  id: -23300007122067,
   properties: {
     r'completed': PropertySchema(
       id: 0,

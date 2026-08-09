@@ -891,3 +891,445 @@ body {
   .dashboard-columns { grid-template-columns: 1fr; }
   .content-body { padding: 1rem; }
 }
+
+/* ====================================================
+   NEW WORKFLOW STYLES — Progress Timeline & Issue Detail
+   ==================================================== */
+
+/* New status pill colors */
+.status-reported { background: hsl(215, 90%, 95%); color: hsl(215, 85%, 52%); }
+.status-action_initiated { background: hsl(38, 95%, 93%); color: hsl(38, 80%, 40%); }
+.status-in_progress { background: hsl(174, 55%, 92%); color: hsl(174, 60%, 32%); }
+.status-waiting { background: hsl(28, 90%, 93%); color: hsl(28, 80%, 42%); }
+.status-completed { background: var(--status-verified-bg); color: var(--status-verified); }
+
+/* Issue Detail View */
+.issue-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.issue-detail-header .detail-title h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+}
+
+.issue-detail-meta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.4rem;
+}
+
+.issue-detail-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.issue-detail-body {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 1.5rem;
+}
+
+.detail-section-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.detail-info-block {
+  background: var(--background);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.detail-info-block strong {
+  color: var(--text-main);
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: 1px solid var(--surface-border);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-main);
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  background: var(--background);
+  border-color: var(--text-muted);
+}
+
+/* Progress Timeline */
+.progress-timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.timeline-node {
+  position: relative;
+  padding-bottom: 1.5rem;
+  padding-left: 1.25rem;
+}
+
+.timeline-node:last-child {
+  padding-bottom: 0;
+}
+
+/* Vertical connector line */
+.timeline-node::before {
+  content: '';
+  position: absolute;
+  left: -2rem;
+  top: 0.6rem;
+  bottom: 0;
+  width: 2px;
+  background: var(--surface-border);
+}
+
+.timeline-node:last-child::before {
+  display: none;
+}
+
+/* Status dot */
+.timeline-node::after {
+  content: '';
+  position: absolute;
+  left: calc(-2rem - 5px);
+  top: 0.35rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--surface-border);
+  border: 2px solid var(--surface);
+  z-index: 1;
+}
+
+.timeline-node.completed::after {
+  background: var(--primary);
+  border-color: var(--primary-light);
+}
+
+.timeline-node.overdue::after {
+  background: var(--status-revision);
+  border-color: hsl(355, 85%, 95%);
+  animation: pulseNode 2s ease-in-out infinite;
+}
+
+.timeline-node.due-soon::after {
+  background: var(--secondary);
+  border-color: hsl(38, 95%, 93%);
+}
+
+@keyframes pulseNode {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 60, 60, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(220, 60, 60, 0); }
+}
+
+.timeline-node-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text-main);
+  margin-bottom: 0.15rem;
+}
+
+.timeline-node-date {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.timeline-node-desc {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.timeline-node-photo {
+  margin-top: 0.5rem;
+}
+
+.timeline-node-photo img {
+  width: 80px;
+  height: 60px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  border: 1px solid var(--surface-border);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.timeline-node-photo img:hover {
+  transform: scale(1.05);
+}
+
+.timeline-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border: 1px dashed var(--primary);
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.35rem;
+}
+
+.timeline-add-btn:hover {
+  background: var(--primary);
+  color: #ffffff;
+  border-style: solid;
+}
+
+/* Reminder Badges */
+.reminder-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 50px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.reminder-badge.overdue {
+  background: hsl(355, 85%, 95%);
+  color: var(--status-revision);
+}
+
+.reminder-badge.due-soon {
+  background: hsl(38, 95%, 93%);
+  color: hsl(38, 80%, 35%);
+}
+
+.reminder-badge.upcoming {
+  background: hsl(215, 90%, 95%);
+  color: hsl(215, 70%, 45%);
+}
+
+/* Reminders List in sidebar */
+.reminders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.reminder-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.65rem;
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.reminder-item:hover {
+  background: var(--primary-light);
+}
+
+.reminder-item-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.reminder-item-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* File Upload Area */
+.file-upload-area {
+  border: 2px dashed var(--surface-border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--background);
+}
+
+.file-upload-area:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.file-upload-area.has-file {
+  border-color: var(--primary);
+  border-style: solid;
+}
+
+.file-upload-icon {
+  font-size: 2rem;
+  margin-bottom: 0.35rem;
+}
+
+.file-upload-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.file-upload-text strong {
+  color: var(--primary);
+}
+
+.file-upload-area input[type="file"] {
+  display: none;
+}
+
+.photo-thumbnail {
+  width: 100%;
+  max-width: 200px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  border: 1px solid var(--surface-border);
+  margin-top: 0.5rem;
+}
+
+/* Update Period Selector */
+.update-period-selector {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.period-option {
+  flex: 1;
+  padding: 0.85rem;
+  border: 2px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  text-align: center;
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-weight: 700;
+  font-size: 0.88rem;
+  background: var(--surface);
+  transition: all 0.2s ease;
+}
+
+.period-option:hover {
+  border-color: var(--primary);
+}
+
+.period-option.selected {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.period-option input {
+  display: none;
+}
+
+/* Stats grid — support 6 cards */
+.stats-grid-6 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.stats-grid-6 .stat-card {
+  padding: 1rem;
+}
+
+.stats-grid-6 .stat-value {
+  font-size: 1.4rem;
+}
+
+/* Icon colors for new stats */
+.icon-teal { background: hsl(174, 55%, 92%); color: hsl(174, 60%, 32%); }
+.icon-red { background: hsl(355, 80%, 93%); color: hsl(355, 70%, 48%); }
+.icon-gold { background: hsl(38, 95%, 93%); color: hsl(38, 80%, 40%); }
+
+/* Issue card timeline mini preview */
+.issue-card-timeline {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  align-items: center;
+}
+
+.timeline-mini-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--surface-border);
+}
+
+.timeline-mini-dot.filled {
+  background: var(--primary);
+}
+
+.timeline-mini-line {
+  width: 16px;
+  height: 2px;
+  background: var(--surface-border);
+}
+
+.timeline-mini-line.filled {
+  background: var(--primary);
+}
+
+/* Responsive additions */
+@media (max-width: 900px) {
+  .issue-detail-body { grid-template-columns: 1fr; }
+  .update-period-selector { flex-direction: column; }
+  .stats-grid-6 { grid-template-columns: repeat(2, 1fr); }
+  .issue-detail-header { flex-direction: column; }
+}
+
+/* Modal wider variant for detail modals */
+.modal-content.modal-wide {
+  max-width: 680px;
+}
+
+/* Section header */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.section-header h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.section-header p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}

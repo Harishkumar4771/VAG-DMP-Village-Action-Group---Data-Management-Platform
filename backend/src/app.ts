@@ -7,6 +7,7 @@ import issueRoutes from './routes/issue.routes';
 import meetingRoutes from './routes/meeting.routes';
 import authRoutes from './routes/auth.routes';
 import syncRoutes from './routes/sync.routes';
+import progressRoutes from './routes/progress.routes';
 import { errorHandler } from './middlewares/error.middleware';
 
 dotenv.config();
@@ -48,6 +49,8 @@ app.use('/v1/villages', villageRoutes);
 app.use('/v1/issues', issueRoutes);
 app.use('/v1/meetings', meetingRoutes);
 app.use('/v1/sync', syncRoutes);
+app.use('/v1/issues', progressRoutes);
+app.use('/v1/progress/reminders', progressRoutes);
 
 // Fallback to index.html for SPA routes
 app.use((req, res, next) => {

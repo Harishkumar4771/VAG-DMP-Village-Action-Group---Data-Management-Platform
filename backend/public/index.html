@@ -83,35 +83,55 @@
           </div>
         </div>
 
-        <!-- Metric Stat Cards -->
-        <div class="stats-grid">
+        <!-- 6 Metric Stat Cards -->
+        <div class="stats-grid-6">
+          <div class="stat-card">
+            <div class="stat-icon icon-blue">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-reported">0</span>
+              <span class="stat-label">New Issues Reported</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon icon-teal">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-in-progress">0</span>
+              <span class="stat-label">Issues In Progress</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon icon-red">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-awaiting-update">0</span>
+              <span class="stat-label">Awaiting Progress Update</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon icon-green">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-completed">0</span>
+              <span class="stat-label">Completed Issues</span>
+            </div>
+          </div>
+
           <div class="stat-card">
             <div class="stat-icon icon-green">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
             </div>
             <div class="stat-info">
-              <span class="stat-value" id="stat-villages">5</span>
+              <span class="stat-value" id="stat-villages">0</span>
               <span class="stat-label">Active Villages</span>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon icon-orange">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-            </div>
-            <div class="stat-info">
-              <span class="stat-value" id="stat-active-issues">3</span>
-              <span class="stat-label">Reported Issues</span>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon icon-blue">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-            </div>
-            <div class="stat-info">
-              <span class="stat-value" id="stat-verified-issues">1</span>
-              <span class="stat-label">Verified & Resolved</span>
             </div>
           </div>
 
@@ -120,7 +140,7 @@
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
             </div>
             <div class="stat-info">
-              <span class="stat-value" id="stat-meetings">2</span>
+              <span class="stat-value" id="stat-meetings">0</span>
               <span class="stat-label">Gram Sabha Meetings</span>
             </div>
           </div>
@@ -139,25 +159,25 @@
                   <div class="cat-icon">💧</div>
                   <h4>Drinking Water</h4>
                   <p>Pipelines, handpumps & storage tanks</p>
-                  <span class="cat-count" id="count-water">1 Issue</span>
+                  <span class="cat-count" id="count-water">0 Issues</span>
                 </div>
                 <div class="category-card cat-road" data-category="ROAD">
                   <div class="cat-icon">🛣️</div>
                   <h4>Road & Infra</h4>
                   <p>Solar lighting, tar roads & paving</p>
-                  <span class="cat-count" id="count-road">1 Issue</span>
+                  <span class="cat-count" id="count-road">0 Issues</span>
                 </div>
                 <div class="category-card cat-education" data-category="EDUCATION">
                   <div class="cat-icon">🎓</div>
                   <h4>Education</h4>
                   <p>School repairs & sanitation facilities</p>
-                  <span class="cat-count" id="count-education">1 Issue</span>
+                  <span class="cat-count" id="count-education">0 Issues</span>
                 </div>
                 <div class="category-card cat-society" data-category="SOCIETY">
                   <div class="cat-icon">👥</div>
                   <h4>Society & Welfare</h4>
                   <p>Drainage, samaj mandir & cleanliness</p>
-                  <span class="cat-count" id="count-society">1 Issue</span>
+                  <span class="cat-count" id="count-society">0 Issues</span>
                 </div>
               </div>
             </div>
@@ -175,7 +195,7 @@
                       <th>Title & Domain</th>
                       <th>Village</th>
                       <th>Status</th>
-                      <th>Proof Attachments</th>
+                      <th>Progress</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -188,8 +208,19 @@
           </div>
 
           <div class="column-side">
-            <!-- Sync Queue Manager Card -->
+            <!-- Follow-Up Reminders Card -->
             <div class="card-box">
+              <div class="card-header">
+                <h3>⏰ Follow-Up Reminders</h3>
+                <span class="subtext">Issues needing progress updates</span>
+              </div>
+              <div id="reminders-list" class="reminders-list">
+                <!-- Dynamic rendering -->
+              </div>
+            </div>
+
+            <!-- Sync Queue Manager Card -->
+            <div class="card-box margin-top">
               <div class="card-header">
                 <h3>Offline Sync Engine</h3>
               </div>
@@ -230,10 +261,10 @@
       <section id="view-issues" class="view-section">
         <div class="section-header">
           <div>
-            <h2>Issue Tracking & Physical Proof Submissions</h2>
-            <p>Log ground issues, track progress, and attach photo/receipt evidence.</p>
+            <h2>Issue Tracking & Progress Documentation</h2>
+            <p>Report ground issues, track progress over time, and attach photo evidence.</p>
           </div>
-          <button class="btn btn-primary" id="btn-create-issue-alt">+ Log New Issue</button>
+          <button class="btn btn-primary" id="btn-create-issue-alt">+ Report New Issue</button>
         </div>
 
         <div class="filter-bar">
@@ -251,16 +282,24 @@
           <div class="filter-dropdown">
             <select id="issue-status-filter">
               <option value="ALL">All Statuses</option>
-              <option value="SUBMITTED">Submitted</option>
-              <option value="PENDING_SYNC">Pending Sync</option>
-              <option value="VERIFIED">Verified</option>
-              <option value="REVISION_REQUESTED">Revision Requested</option>
+              <option value="REPORTED">Reported</option>
+              <option value="ACTION_INITIATED">Action Initiated</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="WAITING">Waiting</option>
+              <option value="COMPLETED">Completed</option>
             </select>
           </div>
         </div>
 
         <div class="issues-cards-grid" id="issues-grid">
           <!-- Dynamic rendering -->
+        </div>
+      </section>
+
+      <!-- ISSUE DETAIL VIEW -->
+      <section id="view-issue-detail" class="view-section">
+        <div id="issue-detail-content">
+          <!-- Rendered dynamically by openIssueDetail() -->
         </div>
       </section>
 
@@ -320,11 +359,11 @@
       </section>
     </main>
 
-    <!-- MODAL: Create Issue -->
+    <!-- MODAL: Report New Issue -->
     <div id="modal-create-issue" class="modal-overlay">
-      <div class="modal-content">
+      <div class="modal-content modal-wide">
         <div class="modal-header">
-          <h3>Log New Ground Issue</h3>
+          <h3>Report New Ground Issue</h3>
           <button class="modal-close">&times;</button>
         </div>
         <form id="form-create-issue">
@@ -340,7 +379,7 @@
                 <option value="WATER">💧 Drinking Water</option>
                 <option value="ROAD">🛣️ Road & Infrastructure</option>
                 <option value="EDUCATION">🎓 Education & Schools</option>
-                <option value="SOCIETY">👥 Society & Welfare</option>
+                <option value="SOCIETY">👥 Society & Community</option>
               </select>
             </div>
             <div class="form-group">
@@ -353,32 +392,111 @@
 
           <div class="form-group">
             <label for="issue-desc">Problem Description *</label>
-            <textarea id="issue-desc" rows="3" placeholder="Describe ground problem detail..." required></textarea>
+            <textarea id="issue-desc" rows="3" placeholder="Describe the ground problem in detail..." required></textarea>
           </div>
 
           <div class="form-group">
-            <label for="issue-action">Action Taken / Resolution Effort *</label>
-            <textarea id="issue-action" rows="2" placeholder="Actions taken with GP / committee..." required></textarea>
+            <label for="issue-action">Initial Action Taken / Immediate Action *</label>
+            <textarea id="issue-action" rows="2" placeholder="e.g. Discussed with Gram Panchayat, Submitted complaint to local authority..." required></textarea>
           </div>
 
           <div class="form-group">
-            <label for="issue-expenditure">Expenditure Details (Optional)</label>
-            <input type="text" id="issue-expenditure" placeholder="e.g. ₹4,500 spent on PVC pipes & labor">
+            <label>Upload Initial Photo / Proof *</label>
+            <div class="file-upload-area" id="initial-photo-upload" onclick="document.getElementById('issue-photo-input').click()">
+              <div class="file-upload-icon">📸</div>
+              <div class="file-upload-text">Click to <strong>upload photo</strong> from device</div>
+              <div class="file-upload-text" style="font-size: 0.75rem; margin-top: 0.25rem;">Shows the current condition of the issue</div>
+              <input type="file" id="issue-photo-input" accept="image/*">
+            </div>
+            <div id="initial-photo-preview"></div>
           </div>
 
           <div class="form-group">
-            <label for="issue-before-photo">Before Repair Photo URL (Optional)</label>
-            <input type="url" id="issue-before-photo" placeholder="https://images.unsplash.com/photo-...">
+            <label for="issue-expenditure">Estimated Expenditure (Optional)</label>
+            <input type="text" id="issue-expenditure" placeholder="e.g. ₹4,500 estimated for PVC pipes & labor">
           </div>
 
           <div class="form-group">
-            <label for="issue-after-photo">After Repair Photo URL (Optional)</label>
-            <input type="url" id="issue-after-photo" placeholder="https://images.unsplash.com/photo-...">
+            <label for="issue-location">Location / GPS (Optional)</label>
+            <input type="text" id="issue-location" placeholder="e.g. Near Primary School, Ward 3">
+          </div>
+
+          <div class="form-group">
+            <label for="issue-notes">Additional Notes (Optional)</label>
+            <textarea id="issue-notes" rows="2" placeholder="Any additional context..."></textarea>
           </div>
 
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary modal-close">Cancel</button>
-            <button type="submit" class="btn btn-primary">Submit Issue Record</button>
+            <button type="submit" class="btn btn-primary">Report Issue</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: Progress Update -->
+    <div id="modal-progress-update" class="modal-overlay">
+      <div class="modal-content modal-wide">
+        <div class="modal-header">
+          <h3>Add Progress Update</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <form id="form-progress-update">
+          <input type="hidden" id="progress-issue-id">
+
+          <div class="form-group">
+            <label>Update Period *</label>
+            <div class="update-period-selector">
+              <label class="period-option selected" id="period-15day">
+                <input type="radio" name="progress-type" value="15_DAY" checked>
+                📅 15-Day Progress Update
+              </label>
+              <label class="period-option" id="period-1month">
+                <input type="radio" name="progress-type" value="1_MONTH">
+                📅 1-Month Progress Update
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="progress-status">Current Status *</label>
+            <select id="progress-status" required>
+              <option value="NOT_STARTED">Work Not Started</option>
+              <option value="WORK_IN_PROGRESS">Work In Progress</option>
+              <option value="WAITING_APPROVAL">Waiting for Approval</option>
+              <option value="WAITING_RESOURCES">Waiting for Resources</option>
+              <option value="COMPLETED">Completed</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="progress-description">Progress Description *</label>
+            <textarea id="progress-description" rows="3" placeholder="Describe the current progress..." required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Upload Progress Photo / Proof *</label>
+            <div class="file-upload-area" id="progress-photo-upload" onclick="document.getElementById('progress-photo-input').click()">
+              <div class="file-upload-icon">📸</div>
+              <div class="file-upload-text">Click to <strong>upload progress photo</strong></div>
+              <input type="file" id="progress-photo-input" accept="image/*">
+            </div>
+            <div id="progress-photo-preview"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="progress-expenditure">Expenditure / Amount Spent (Optional)</label>
+            <input type="text" id="progress-expenditure" placeholder="e.g. ₹2,000 for materials">
+          </div>
+
+          <div class="form-group">
+            <label for="progress-notes">Additional Notes (Optional)</label>
+            <textarea id="progress-notes" rows="2" placeholder="Any additional context..."></textarea>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+            <button type="submit" class="btn btn-primary">Submit Progress Update</button>
           </div>
         </form>
       </div>

@@ -15,7 +15,7 @@ extension GetVillageModelCollection on Isar {
 
 const VillageModelSchema = CollectionSchema(
   name: r'VillageModel',
-  id: -124392236,
+  id: -40171972559884,
   properties: {
     r'district': PropertySchema(
       id: 0,
@@ -66,7 +66,7 @@ const VillageModelSchema = CollectionSchema(
   idName: r'isarId',
   indexes: {
     r'id': IndexSchema(
-      id: -1955831,
+      id: -32684016739934,
       name: r'id',
       unique: true,
       replace: true,
@@ -79,7 +79,7 @@ const VillageModelSchema = CollectionSchema(
       ],
     ),
     r'syncStatus': IndexSchema(
-      id: 858239288,
+      id: 823953937504568,
       name: r'syncStatus',
       unique: false,
       replace: false,

@@ -29,9 +29,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Modal Elements
   const modalCreateIssue = document.getElementById('modal-create-issue');
+  const modalProgressUpdate = document.getElementById('modal-progress-update');
   const modalCreateMeeting = document.getElementById('modal-create-meeting');
   const modalAdminReview = document.getElementById('modal-admin-review');
   const formCreateIssue = document.getElementById('form-create-issue');
+  const formProgressUpdate = document.getElementById('form-progress-update');
   const formCreateMeeting = document.getElementById('form-create-meeting');
   const issueVillageSelect = document.getElementById('issue-village');
   const meetingVillageSelect = document.getElementById('meeting-village');
@@ -42,10 +44,54 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCreateMeetingMain = document.getElementById('btn-create-meeting-main');
   const btnNewMeeting = document.getElementById('btn-new-meeting');
 
+  // File Upload State
+  let currentInitialPhotoData = null;
+  let currentProgressPhotoData = null;
+
+  document.getElementById('issue-photo-input').addEventListener('change', (e) => {
+    handleFileUpload(e, 'initial-photo-preview', (data) => currentInitialPhotoData = data);
+  });
+
+  document.getElementById('progress-photo-input').addEventListener('change', (e) => {
+    handleFileUpload(e, 'progress-photo-preview', (data) => currentProgressPhotoData = data);
+  });
+
+  function handleFileUpload(e, previewId, callback) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target.result;
+      callback(dataUrl);
+      const previewDiv = document.getElementById(previewId);
+      previewDiv.innerHTML = `<img src="${dataUrl}" class="photo-thumbnail" alt="Uploaded Photo">`;
+      e.target.closest('.file-upload-area').classList.add('has-file');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Progress update period selection logic
+  document.querySelectorAll('.period-option').forEach(option => {
+    option.addEventListener('click', function() {
+      document.querySelectorAll('.period-option').forEach(opt => opt.classList.remove('selected'));
+      this.classList.add('selected');
+      this.querySelector('input').checked = true;
+    });
+  });
+
   // --- API CALLS ---
+  async function apiFetch(url, options = {}) {
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-user-role': state.currentRole,
+      ...(options.headers || {}),
+    };
+    return fetch(url, { ...options, headers });
+  }
+
   async function fetchVillages() {
     try {
-      const res = await fetch('/v1/villages');
+      const res = await apiFetch('/v1/villages');
       if (!res.ok) throw new Error('Failed to fetch villages');
       state.villages = await res.json();
       renderVillages();
@@ -58,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function fetchIssues() {
     try {
-      const res = await fetch('/v1/issues');
+      const res = await apiFetch('/v1/issues');
       if (!res.ok) throw new Error('Failed to fetch issues');
       const data = await res.json();
       state.issues = data.items || [];
@@ -66,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderRecentIssues();
       renderVerificationList();
       updateDashboardStats();
+      fetchReminders();
     } catch (e) {
       console.error('Error fetching issues:', e);
     }
@@ -73,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function fetchMeetings() {
     try {
-      const res = await fetch('/v1/meetings');
+      const res = await apiFetch('/v1/meetings');
       if (!res.ok) throw new Error('Failed to fetch meetings');
       state.meetings = await res.json();
       renderMeetings();
@@ -81,6 +128,20 @@ document.addEventListener('DOMContentLoaded', () => {
       updateDashboardStats();
     } catch (e) {
       console.error('Error fetching meetings:', e);
+    }
+  }
+
+  async function fetchReminders() {
+    try {
+      const res = await apiFetch('/v1/progress/reminders');
+      if (!res.ok) throw new Error('Failed to fetch reminders');
+      const reminders = await res.json();
+      renderFollowUpReminders(reminders);
+      
+      const awaitingUpdate = reminders.filter(r => r.status === 'overdue' || r.status === 'due_soon').length;
+      document.getElementById('stat-awaiting-update').textContent = awaitingUpdate;
+    } catch (e) {
+      console.error('Error fetching reminders:', e);
     }
   }
 
@@ -98,11 +159,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  function switchView(viewName) {
+  window.switchView = function(viewName) {
     navLinks.forEach((l) => l.classList.remove('active'));
     viewSections.forEach((s) => s.classList.remove('active'));
 
-    const activeLink = document.querySelector(`.nav-link[data-view="${viewName}"]`);
+    const activeLink = document.querySelector(`.nav-link[data-view="${viewName === 'issue-detail' ? 'issues' : viewName}"]`);
     const activeSection = document.getElementById(`view-${viewName}`);
 
     if (activeLink) activeLink.classList.add('active');
@@ -152,24 +213,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const payload = {
-        issues: state.pendingSyncQueue.filter((i) => i.type === 'issue').map((i) => i.data),
-        meetings: state.pendingSyncQueue.filter((i) => i.type === 'meeting').map((i) => i.data),
-      };
+      const issuePayloads = state.pendingSyncQueue.filter((i) => i.type === 'issue').map((i) => i.data);
+      const meetingPayloads = state.pendingSyncQueue.filter((i) => i.type === 'meeting').map((i) => i.data);
+      const progressPayloads = state.pendingSyncQueue.filter((i) => i.type === 'progress');
 
-      const res = await fetch('/v1/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        state.pendingSyncQueue = [];
-        updateQueueUI();
-        showToast('✅ Cloud Sync complete! Pending items successfully uploaded.');
-        fetchIssues();
-        fetchMeetings();
+      if (issuePayloads.length > 0 || meetingPayloads.length > 0) {
+        const payload = { issues: issuePayloads, meetings: meetingPayloads };
+        const res = await apiFetch('/v1/sync/push', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error('Sync failed');
       }
+
+      // Sync progress updates one by one (could be optimized with a batch endpoint later)
+      for (const pu of progressPayloads) {
+        await apiFetch(`/v1/issues/${pu.issueId}/progress`, {
+          method: 'POST',
+          body: JSON.stringify(pu.data)
+        });
+      }
+
+      state.pendingSyncQueue = [];
+      updateQueueUI();
+      showToast('✅ Cloud Sync complete! Pending items successfully uploaded.');
+      fetchIssues();
+      fetchMeetings();
     } catch (e) {
       showToast('Failed to sync queue with server.');
     }
@@ -181,9 +250,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- RENDERING FUNCTIONS ---
   function updateDashboardStats() {
+    const reported = state.issues.filter(i => i.status === 'REPORTED').length;
+    const inProgress = state.issues.filter(i => i.status === 'IN_PROGRESS' || i.status === 'ACTION_INITIATED').length;
+    const completed = state.issues.filter(i => i.status === 'COMPLETED').length;
+
+    document.getElementById('stat-reported').textContent = reported;
+    document.getElementById('stat-in-progress').textContent = inProgress;
+    document.getElementById('stat-completed').textContent = completed;
     document.getElementById('stat-villages').textContent = state.villages.length;
-    document.getElementById('stat-active-issues').textContent = state.issues.length;
-    document.getElementById('stat-verified-issues').textContent = state.issues.filter((i) => i.status === 'VERIFIED').length;
     document.getElementById('stat-meetings').textContent = state.meetings.length;
 
     // Category counts
@@ -206,6 +280,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (meetingVillageSelect) meetingVillageSelect.innerHTML = optionsHtml;
   }
 
+  function renderFollowUpReminders(reminders) {
+    const listEl = document.getElementById('reminders-list');
+    if (!listEl) return;
+
+    if (reminders.length === 0) {
+      listEl.innerHTML = `<div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">No follow-up updates pending.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = reminders.map(r => `
+      <div class="reminder-item" onclick="openIssueDetail('${r.issueId}')">
+        <div style="flex: 1;">
+          <div class="reminder-item-text">${escapeHtml(r.issueTitle)}</div>
+          <div class="reminder-item-sub">${escapeHtml(r.villageName)} • ${getCategoryLabel(r.category)}</div>
+        </div>
+        <span class="reminder-badge ${r.status}">
+          ${r.type === '15_DAY' ? '15-Day' : '1-Month'} ${r.status === 'overdue' ? 'Overdue' : (r.status === 'due_soon' ? 'Due Soon' : 'Upcoming')}
+        </span>
+      </div>
+    `).join('');
+  }
+
   function renderRecentIssues() {
     const listEl = document.getElementById('recent-issues-list');
     if (!listEl) return;
@@ -218,10 +314,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const recent = state.issues.slice(0, 5);
     listEl.innerHTML = recent
       .map((issue) => {
-        const vName = issue.village?.name || 'Chandpur';
+        const vName = issue.village?.name || 'Unknown Village';
         const statusBadge = getStatusBadge(issue.status);
-        const proofs = issue.media || [];
-        const mediaCount = proofs.length;
+        
+        let progressNodes = '<div class="issue-card-timeline">';
+        progressNodes += `<div class="timeline-mini-dot filled"></div>`;
+        const has15d = issue.progressUpdates?.some(p => p.type === '15_DAY');
+        const has1m = issue.progressUpdates?.some(p => p.type === '1_MONTH');
+        progressNodes += `<div class="timeline-mini-line ${has15d ? 'filled' : ''}"></div>`;
+        progressNodes += `<div class="timeline-mini-dot ${has15d ? 'filled' : ''}"></div>`;
+        progressNodes += `<div class="timeline-mini-line ${has1m ? 'filled' : ''}"></div>`;
+        progressNodes += `<div class="timeline-mini-dot ${has1m ? 'filled' : ''}"></div>`;
+        progressNodes += '</div>';
 
         return `
           <tr>
@@ -231,9 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </td>
             <td>${escapeHtml(vName)}</td>
             <td>${statusBadge}</td>
-            <td>${mediaCount > 0 ? `📸 ${mediaCount} Proof photos` : '📄 Documentation'}</td>
+            <td>${progressNodes}</td>
             <td>
-              <button class="btn btn-sm btn-outline" onclick="openReviewModal('${issue.id}')">View</button>
+              <button class="btn btn-sm btn-outline" onclick="openIssueDetail('${issue.id}')">View</button>
             </td>
           </tr>
         `;
@@ -270,9 +374,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     gridEl.innerHTML = filtered
       .map((issue) => {
-        const vName = issue.village?.name || 'Chandpur';
+        const vName = issue.village?.name || 'Unknown Village';
         const statusBadge = getStatusBadge(issue.status);
-        const photos = issue.media || [];
+        
+        let progressNodes = '<div class="issue-card-timeline" style="margin-top: 0.75rem;">';
+        progressNodes += `<div class="timeline-mini-dot filled"></div>`;
+        const has15d = issue.progressUpdates?.some(p => p.type === '15_DAY');
+        const has1m = issue.progressUpdates?.some(p => p.type === '1_MONTH');
+        progressNodes += `<div class="timeline-mini-line ${has15d ? 'filled' : ''}"></div>`;
+        progressNodes += `<div class="timeline-mini-dot ${has15d ? 'filled' : ''}"></div>`;
+        progressNodes += `<div class="timeline-mini-line ${has1m ? 'filled' : ''}"></div>`;
+        progressNodes += `<div class="timeline-mini-dot ${has1m ? 'filled' : ''}"></div>`;
+        progressNodes += '</div>';
 
         return `
           <div class="issue-card">
@@ -285,32 +398,171 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span>📍 ${escapeHtml(vName)}</span>
                 <span>🏷️ ${getCategoryLabel(issue.category)}</span>
               </div>
-              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                 ${escapeHtml(issue.problemDescription)}
               </p>
-              ${
-                issue.expenditureDetails
-                  ? `<div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); margin-top: 0.4rem;">💰 Expenditure: ${escapeHtml(issue.expenditureDetails)}</div>`
-                  : ''
-              }
-              ${
-                photos.length > 0
-                  ? `<div class="proof-photos-preview">
-                      ${photos
-                        .map((p) => `<img src="${p.url}" class="proof-img" alt="Proof" onerror="this.src='https://images.unsplash.com/photo-1541888946425-d0fbb186a5b3?auto=format&fit=crop&w=150&q=80'">`)
-                        .join('')}
-                    </div>`
-                  : ''
-              }
+              ${progressNodes}
             </div>
-            <div style="display: flex; justify-content: flex-end; margin-top: 0.75rem;">
-              <button class="btn btn-sm btn-outline" onclick="openReviewModal('${issue.id}')">Details & Timeline</button>
+            <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+              <button class="btn btn-sm btn-outline" onclick="openIssueDetail('${issue.id}')">Details & Timeline</button>
             </div>
           </div>
         `;
       })
       .join('');
   }
+
+  window.openIssueDetail = function(issueId) {
+    const issue = state.issues.find(i => i.id === issueId);
+    if (!issue) return;
+
+    const contentDiv = document.getElementById('issue-detail-content');
+    
+    // Prepare timeline data
+    const reportedDate = new Date(issue.reportedDate);
+    
+    let timelineHtml = `
+      <div class="timeline-node completed">
+        <div class="timeline-node-title">Reported</div>
+        <div class="timeline-node-date">${reportedDate.toLocaleDateString()}</div>
+        <div class="timeline-node-desc">${escapeHtml(issue.problemDescription)}</div>
+      </div>
+      
+      <div class="timeline-node completed">
+        <div class="timeline-node-title">Initial Action Taken</div>
+        <div class="timeline-node-date">${reportedDate.toLocaleDateString()}</div>
+        <div class="timeline-node-desc">${escapeHtml(issue.actionTaken)}</div>
+        ${issue.media && issue.media.find(m => m.type === 'INITIAL' || m.type === 'BEFORE') ? 
+          `<div class="timeline-node-photo">
+             <img src="${issue.media.find(m => m.type === 'INITIAL' || m.type === 'BEFORE').url}" alt="Initial Photo">
+           </div>` : ''}
+      </div>
+    `;
+
+    const update15d = issue.progressUpdates?.find(p => p.type === '15_DAY');
+    if (update15d) {
+      timelineHtml += `
+        <div class="timeline-node completed">
+          <div class="timeline-node-title">15-Day Progress Update <span class="badge" style="background:var(--background); border:1px solid var(--surface-border); margin-left:8px;">${update15d.status.replace(/_/g, ' ')}</span></div>
+          <div class="timeline-node-date">${new Date(update15d.date).toLocaleDateString()}</div>
+          <div class="timeline-node-desc">${escapeHtml(update15d.description)}</div>
+          ${update15d.photoUrl ? `<div class="timeline-node-photo"><img src="${update15d.photoUrl}" alt="Progress Photo"></div>` : ''}
+        </div>
+      `;
+    } else {
+      const due15d = new Date(reportedDate);
+      due15d.setDate(due15d.getDate() + 15);
+      const isOverdue = new Date() > due15d;
+      
+      timelineHtml += `
+        <div class="timeline-node ${isOverdue ? 'overdue' : 'pending'}">
+          <div class="timeline-node-title">15-Day Progress Update</div>
+          <div class="timeline-node-date">Due: ${due15d.toLocaleDateString()} ${isOverdue ? '<span style="color:red;font-weight:bold;">(Overdue)</span>' : ''}</div>
+          <button class="timeline-add-btn" onclick="openProgressUpdateModal('${issue.id}', '15_DAY')">+ Add Progress Update</button>
+        </div>
+      `;
+    }
+
+    const update1m = issue.progressUpdates?.find(p => p.type === '1_MONTH');
+    if (update1m) {
+      timelineHtml += `
+        <div class="timeline-node completed">
+          <div class="timeline-node-title">1-Month Progress Update <span class="badge" style="background:var(--background); border:1px solid var(--surface-border); margin-left:8px;">${update1m.status.replace(/_/g, ' ')}</span></div>
+          <div class="timeline-node-date">${new Date(update1m.date).toLocaleDateString()}</div>
+          <div class="timeline-node-desc">${escapeHtml(update1m.description)}</div>
+          ${update1m.photoUrl ? `<div class="timeline-node-photo"><img src="${update1m.photoUrl}" alt="Progress Photo"></div>` : ''}
+        </div>
+      `;
+    } else {
+      const due1m = new Date(reportedDate);
+      due1m.setMonth(due1m.getMonth() + 1);
+      const isOverdue = new Date() > due1m;
+      
+      timelineHtml += `
+        <div class="timeline-node ${isOverdue ? 'overdue' : 'pending'}">
+          <div class="timeline-node-title">1-Month Progress Update</div>
+          <div class="timeline-node-date">Due: ${due1m.toLocaleDateString()} ${isOverdue ? '<span style="color:red;font-weight:bold;">(Overdue)</span>' : ''}</div>
+          <button class="timeline-add-btn" onclick="openProgressUpdateModal('${issue.id}', '1_MONTH')">+ Add Progress Update</button>
+        </div>
+      `;
+    }
+
+    contentDiv.innerHTML = `
+      <div class="section-header">
+        <button class="back-btn" onclick="switchView('issues')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          Back to Issues
+        </button>
+      </div>
+
+      <div class="issue-detail-header">
+        <div class="detail-title">
+          <h2>${escapeHtml(issue.title)}</h2>
+          <div class="issue-detail-meta">
+            <span>📍 ${escapeHtml(issue.village?.name || 'Unknown')}</span>
+            <span>🏷️ ${getCategoryLabel(issue.category)}</span>
+            <span>📅 Reported: ${reportedDate.toLocaleDateString()}</span>
+          </div>
+        </div>
+        ${getStatusBadge(issue.status)}
+      </div>
+
+      <div class="issue-detail-body">
+        <div class="detail-main">
+          <div class="detail-info-block">
+            <div class="detail-section-title">Progress Timeline</div>
+            <div class="progress-timeline" style="margin-top: 1rem;">
+              ${timelineHtml}
+            </div>
+          </div>
+        </div>
+        <div class="detail-side">
+          <div class="detail-info-block">
+            <div class="detail-section-title">Expenditure Summary</div>
+            <div style="font-size: 0.85rem; margin-bottom: 0.75rem;">
+              <strong>Initial Estimate:</strong><br>
+              ${escapeHtml(issue.expenditureDetails || 'None provided')}
+            </div>
+            ${issue.progressUpdates?.map(p => p.expenditure ? `
+              <div style="font-size: 0.85rem; margin-bottom: 0.75rem;">
+                <strong>${p.type === '15_DAY' ? '15-Day' : '1-Month'} Update:</strong><br>
+                ${escapeHtml(p.expenditure)}
+              </div>
+            ` : '').join('') || ''}
+          </div>
+        </div>
+      </div>
+    `;
+
+    switchView('issue-detail');
+  };
+
+  window.openProgressUpdateModal = function(issueId, type) {
+    document.getElementById('progress-issue-id').value = issueId;
+    
+    // Select the correct radio button
+    document.querySelectorAll('.period-option').forEach(opt => opt.classList.remove('selected'));
+    if (type === '15_DAY') {
+      const opt = document.getElementById('period-15day');
+      opt.classList.add('selected');
+      opt.querySelector('input').checked = true;
+    } else {
+      const opt = document.getElementById('period-1month');
+      opt.classList.add('selected');
+      opt.querySelector('input').checked = true;
+    }
+    
+    // Reset form
+    document.getElementById('progress-status').value = 'NOT_STARTED';
+    document.getElementById('progress-description').value = '';
+    document.getElementById('progress-expenditure').value = '';
+    document.getElementById('progress-notes').value = '';
+    document.getElementById('progress-photo-preview').innerHTML = '';
+    currentProgressPhotoData = null;
+    document.getElementById('progress-photo-upload').classList.remove('has-file');
+
+    modalProgressUpdate.classList.add('active');
+  };
 
   function renderVillages() {
     const gridEl = document.getElementById('villages-grid');
@@ -365,7 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
           hour: '2-digit',
           minute: '2-digit',
         });
-        const vName = mtg.village?.name || 'Chandpur';
+        const vName = mtg.village?.name || 'Unknown';
 
         return `
           <div class="meeting-card">
@@ -389,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!listEl) return;
 
     listEl.innerHTML = state.meetings.slice(0, 3).map((mtg) => {
-      const vName = mtg.village?.name || 'Chandpur';
+      const vName = mtg.village?.name || 'Unknown';
       return `
         <div style="padding: 0.6rem 0; border-bottom: 1px solid var(--surface-border);">
           <strong style="font-size: 0.85rem;">Gram Sabha - ${escapeHtml(vName)}</strong>
@@ -415,7 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     listEl.innerHTML = pending
       .map((issue) => {
-        const vName = issue.village?.name || 'Chandpur';
+        const vName = issue.village?.name || 'Unknown';
         const proofs = issue.media || [];
         return `
           <div class="card-box margin-top">
@@ -438,8 +690,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- HELPER FUNCTIONS ---
   function getStatusBadge(status) {
-    const s = (status || 'SUBMITTED').toLowerCase();
-    return `<span class="status-pill status-${s}">${status || 'SUBMITTED'}</span>`;
+    const s = (status || 'REPORTED').toLowerCase();
+    const formattedStatus = (status || 'REPORTED').replace(/_/g, ' ');
+    return `<span class="status-pill status-${s}">${formattedStatus}</span>`;
   }
 
   function getCategoryLabel(cat) {
@@ -480,7 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     detailsContainer.innerHTML = `
       <h4 style="font-size: 1.1rem; font-weight: 800;">${escapeHtml(issue.title)}</h4>
-      <p style="font-size: 0.85rem; color: var(--text-muted);">Village: ${escapeHtml(issue.village?.name || 'Chandpur')} | Status: <strong>${issue.status}</strong></p>
+      <p style="font-size: 0.85rem; color: var(--text-muted);">Village: ${escapeHtml(issue.village?.name || 'Unknown')} | Status: <strong>${issue.status}</strong></p>
       <div style="margin-top: 0.75rem; background: var(--background); padding: 0.85rem; border-radius: var(--radius-md);">
         <p style="font-size: 0.88rem;"><strong>Problem Description:</strong> ${escapeHtml(issue.problemDescription)}</p>
         <p style="font-size: 0.88rem; margin-top: 0.4rem;"><strong>Resolution Action:</strong> ${escapeHtml(issue.actionTaken)}</p>
@@ -496,6 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.modal-close').forEach((btn) => {
     btn.addEventListener('click', () => {
       modalCreateIssue.classList.remove('active');
+      modalProgressUpdate.classList.remove('active');
       modalCreateMeeting.classList.remove('active');
       modalAdminReview.classList.remove('active');
     });
@@ -515,8 +769,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const problemDescription = document.getElementById('issue-desc').value;
     const actionTaken = document.getElementById('issue-action').value;
     const expenditureDetails = document.getElementById('issue-expenditure').value;
-    const beforeUrl = document.getElementById('issue-before-photo').value;
-    const afterUrl = document.getElementById('issue-after-photo').value;
+    const location = document.getElementById('issue-location').value;
+    const notes = document.getElementById('issue-notes').value;
+
+    if (!currentInitialPhotoData) {
+      showToast('⚠️ Please upload an initial photo as proof.');
+      return;
+    }
 
     const issuePayload = {
       title,
@@ -525,10 +784,17 @@ document.addEventListener('DOMContentLoaded', () => {
       problemDescription,
       actionTaken,
       expenditureDetails,
-      beforePhotoUrls: beforeUrl ? [beforeUrl] : [],
-      afterPhotoUrls: afterUrl ? [afterUrl] : [],
+      beforePhotoUrls: [currentInitialPhotoData], // Passed to backend mapping
+      status: 'REPORTED',
       submittedById: 'leader-001',
     };
+
+    if (notes) {
+      issuePayload.problemDescription += `\n\nNotes: ${notes}`;
+    }
+    if (location) {
+      issuePayload.problemDescription += `\nLocation: ${location}`;
+    }
 
     if (!state.isOnline) {
       // Store in offline queue
@@ -536,27 +802,108 @@ document.addEventListener('DOMContentLoaded', () => {
       updateQueueUI();
       modalCreateIssue.classList.remove('active');
       formCreateIssue.reset();
+      currentInitialPhotoData = null;
+      document.getElementById('initial-photo-preview').innerHTML = '';
+      document.getElementById('initial-photo-upload').classList.remove('has-file');
       showToast('📦 Saved offline! Item queued for sync.');
       return;
     }
 
     try {
-      const res = await fetch('/v1/issues', {
+      const res = await apiFetch('/v1/issues', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(issuePayload),
       });
 
       if (res.ok) {
-        showToast('✅ Issue reported & submitted to backend!');
+        showToast('✅ Issue reported successfully!');
         modalCreateIssue.classList.remove('active');
         formCreateIssue.reset();
+        currentInitialPhotoData = null;
+        document.getElementById('initial-photo-preview').innerHTML = '';
+        document.getElementById('initial-photo-upload').classList.remove('has-file');
         fetchIssues();
       }
     } catch (e) {
       showToast('Error submitting issue.');
     }
   });
+
+  // CREATE PROGRESS UPDATE FORM SUBMISSION
+  formProgressUpdate.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const issueId = document.getElementById('progress-issue-id').value;
+    const type = document.querySelector('input[name="progress-type"]:checked').value;
+    const status = document.getElementById('progress-status').value;
+    const description = document.getElementById('progress-description').value;
+    const expenditure = document.getElementById('progress-expenditure').value;
+    const notes = document.getElementById('progress-notes').value;
+
+    if (!currentProgressPhotoData) {
+      showToast('⚠️ Please upload a progress photo as proof.');
+      return;
+    }
+
+    const payload = {
+      type,
+      status,
+      description,
+      photoDataUrl: currentProgressPhotoData,
+      expenditure,
+      notes,
+    };
+
+    if (!state.isOnline) {
+      state.pendingSyncQueue.push({ type: 'progress', issueId, data: payload });
+      updateQueueUI();
+      modalProgressUpdate.classList.remove('active');
+      formProgressUpdate.reset();
+      currentProgressPhotoData = null;
+      document.getElementById('progress-photo-preview').innerHTML = '';
+      document.getElementById('progress-photo-upload').classList.remove('has-file');
+      showToast('📦 Progress update saved offline!');
+      
+      // Update UI optimistically
+      const issue = state.issues.find(i => i.id === issueId);
+      if (issue) {
+        if (!issue.progressUpdates) issue.progressUpdates = [];
+        issue.progressUpdates.push({ ...payload, date: new Date().toISOString() });
+        openIssueDetail(issueId);
+      }
+      return;
+    }
+
+    try {
+      const res = await apiFetch(`/v1/issues/${issueId}/progress`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        showToast('✅ Progress update submitted successfully!');
+        modalProgressUpdate.classList.remove('active');
+        formProgressUpdate.reset();
+        currentProgressPhotoData = null;
+        document.getElementById('progress-photo-preview').innerHTML = '';
+        document.getElementById('progress-photo-upload').classList.remove('has-file');
+        
+        // Refresh issues to get updated status and timeline
+        await fetchIssues();
+        
+        // If we are currently on the detail view, re-render it
+        const currentActiveLink = document.querySelector('.nav-link.active');
+        if (currentActiveLink && currentActiveLink.getAttribute('data-view') === 'issues' && document.getElementById('view-issue-detail').classList.contains('active')) {
+           openIssueDetail(issueId);
+        }
+      } else {
+        const error = await res.json();
+        showToast(`Error: ${error.message || 'Failed to submit progress update'}`);
+      }
+    } catch (e) {
+      showToast('Error submitting progress update.');
+    }
+  });
+
 
   // CREATE MEETING FORM SUBMISSION
   formCreateMeeting.addEventListener('submit', async (e) => {
@@ -569,9 +916,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const meetingPayload = { villageId, date, attendeesCount, notes };
 
     try {
-      const res = await fetch('/v1/meetings', {
+      const res = await apiFetch('/v1/meetings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(meetingPayload),
       });
 
@@ -592,9 +938,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const note = document.getElementById('admin-note').value;
 
     try {
-      const res = await fetch(`/v1/issues/${issueId}/status`, {
+      const res = await apiFetch(`/v1/issues/${issueId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'VERIFIED', adminReviewNote: note || 'Verified by Admin' }),
       });
 
@@ -613,9 +958,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const note = document.getElementById('admin-note').value;
 
     try {
-      const res = await fetch(`/v1/issues/${issueId}/status`, {
+      const res = await apiFetch(`/v1/issues/${issueId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'REVISION_REQUESTED', adminReviewNote: note || 'Revision requested by Admin' }),
       });
 
