@@ -11,8 +11,8 @@
 </head>
 <body>
   <div id="app" class="app-container">
-    <!-- Login Overlay -->
-    <div id="login-overlay" class="login-overlay active">
+    <!-- Login Overlay (Hidden) -->
+    <div id="login-overlay" class="login-overlay" style="display: none;">
       <div class="login-box">
         <div class="brand-logo" style="display:flex; justify-content:center; margin-bottom: 1rem;">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
@@ -25,16 +25,16 @@
             <input type="text" id="login-phone" placeholder="e.g. 9876543210" required>
           </div>
           <div class="form-group">
-            <label for="login-otp">Password / OTP (Try: 123456)</label>
-            <input type="text" id="login-otp" placeholder="123456" value="123456" required>
+            <label for="login-otp">Password / OTP (Try: 12345)</label>
+            <input type="text" id="login-otp" placeholder="12345" value="12345" required>
           </div>
           <button id="btn-verify-otp" class="btn btn-primary btn-full">Login</button>
         </div>
       </div>
     </div>
 
-    <!-- Main Content Area (hidden initially) -->
-    <div id="main-app-content" style="display: none;">
+    <!-- Main Content Area -->
+    <div id="main-app-content" style="display: block;">
       <!-- Top Navigation Bar -->
     <header class="navbar">
       <div class="nav-brand">
@@ -77,10 +77,14 @@
           <span id="sync-status-text">Online Sync Active</span>
         </button>
 
-        <!-- Logout Button -->
-        <button id="btn-logout" class="btn btn-secondary btn-sm" style="margin-right: 1rem;">
-          Logout
-        </button>
+        <!-- Role Toggle Switcher -->
+        <div class="role-selector">
+          <label for="role-switch">Role:</label>
+          <select id="role-switch" class="role-dropdown">
+            <option value="LEADER">Leader (Sunita K.)</option>
+            <option value="ADMIN">Admin (Priya D.)</option>
+          </select>
+        </div>
 
         <button id="btn-create-issue" class="btn btn-primary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>

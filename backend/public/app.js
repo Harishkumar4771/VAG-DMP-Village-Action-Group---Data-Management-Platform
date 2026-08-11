@@ -18,18 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
   const navLinks = document.querySelectorAll('.nav-link');
   const viewSections = document.querySelectorAll('.view-section');
-  // Auth Elements
-  const loginOverlay = document.getElementById('login-overlay');
-  const mainAppContent = document.getElementById('main-app-content');
-  const loginStep1 = document.getElementById('login-step-1');
-  const loginStep2 = document.getElementById('login-step-2');
-  const btnRequestOtp = document.getElementById('btn-request-otp');
-  const btnVerifyOtp = document.getElementById('btn-verify-otp');
-  const btnBackPhone = document.getElementById('btn-back-phone');
-  const loginPhone = document.getElementById('login-phone');
-  const loginOtp = document.getElementById('login-otp');
-  const btnLogout = document.getElementById('btn-logout');
-  let authPhone = '';
+  const roleSelect = document.getElementById('role-switch');
   const syncToggleBtn = document.getElementById('sync-toggle-btn');
   const syncStatusText = document.getElementById('sync-status-text');
   const syncDot = document.getElementById('sync-dot');
@@ -92,17 +81,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- API CALLS ---
   async function apiFetch(url, options = {}) {
-    const token = localStorage.getItem('token');
     const headers = {
       'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      'x-user-role': state.currentRole,
       ...(options.headers || {}),
     };
-    const res = await fetch(url, { ...options, headers });
-    if (res.status === 401) {
-      handleLogout();
-    }
-    return res;
+    return fetch(url, { ...options, headers });
   }
 
   async function fetchVillages() {
@@ -186,86 +170,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (activeSection) activeSection.classList.add('active');
   }
 
-  // --- AUTH LOGIC ---
-  async function checkAuth() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      showLogin();
-      return;
-    }
-    try {
-      const res = await apiFetch('/v1/auth/me');
-      if (res.ok) {
-        const user = await res.json();
-        state.currentRole = user.role;
-        const adminNav = document.getElementById('admin-nav-link');
-        if (adminNav) {
-          adminNav.style.display = state.currentRole === 'ADMIN' ? 'flex' : 'none';
-        }
-        showApp();
-      } else {
-        handleLogout();
-      }
-    } catch (e) {
-      showLogin();
-    }
-  }
-
-  function showLogin() {
-    loginOverlay.style.display = 'flex';
-    mainAppContent.style.display = 'none';
-    loginStep1.style.display = 'block';
-    loginStep2.style.display = 'none';
-  }
-
-  function showApp() {
-    loginOverlay.style.display = 'none';
-    mainAppContent.style.display = 'block';
-    initData();
-  }
-
-  function handleLogout() {
-    localStorage.removeItem('token');
-    state.villages = [];
-    state.issues = [];
-    state.meetings = [];
-    showLogin();
-  }
-
-  if (btnLogout) btnLogout.addEventListener('click', handleLogout);
-
-
-  if (btnVerifyOtp) {
-    btnVerifyOtp.addEventListener('click', async () => {
-      const phone = loginPhone.value.trim();
-      if (phone.length < 10) return showToast('Enter valid 10-digit phone');
-      const otp = loginOtp.value.trim();
-      if (otp.length !== 6) return showToast('Enter 6-digit OTP');
+  // --- ROLE SWITCHING ---
+  if (roleSelect) {
+    roleSelect.addEventListener('change', (e) => {
+      state.currentRole = e.target.value;
+      showToast(`Role switched to ${state.currentRole === 'ADMIN' ? 'Admin Verifier' : 'Village Leader'}`);
       
-      btnVerifyOtp.textContent = 'Verifying...';
-      try {
-        const res = await fetch('/v1/auth/verify-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, otp })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          localStorage.setItem('token', data.token);
-          showToast('Login successful!');
-          checkAuth();
-        } else {
-          const err = await res.json();
-          showToast(err.message || 'Invalid OTP');
-        }
-      } catch (e) {
-        showToast('Network error');
-      } finally {
-        btnVerifyOtp.textContent = 'Verify & Login';
+      const adminNav = document.getElementById('admin-nav-link');
+      if (adminNav) {
+        adminNav.style.display = state.currentRole === 'ADMIN' ? 'flex' : 'none';
       }
+      
+      renderVerificationList();
     });
   }
-
 
   // --- SYNC ENGINE TOGGLE ---
   syncToggleBtn.addEventListener('click', () => {
@@ -1098,5 +1016,5 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Initialize
-  checkAuth();
+  initData();
 });

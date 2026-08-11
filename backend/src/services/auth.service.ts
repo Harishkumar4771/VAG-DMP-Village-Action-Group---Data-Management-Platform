@@ -10,7 +10,7 @@ export const requestOtp = async (phone: string) => {
 };
 
 export const verifyOtp = async (phone: string, otp: string) => {
-  if (otp !== '123456') {
+  if (otp !== '12345') {
     const error: any = new Error('Invalid OTP');
     error.status = 400;
     throw error;
